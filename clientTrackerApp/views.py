@@ -55,5 +55,42 @@ def contact_create(request, client_pk=None):
     )
 
 
+"""
+############################################
+Client Edits & Deletion 
+############################################
+"""
 
+@login_required
+def client_edit(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+
+    if request.method == "POST":
+        form = ClientForm(request.POST, request.FILES, instance=client)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Client '{client.name}' updated.")
+            return redirect("client-detail", pk=client.pk)
+    else:
+        form = ClientForm(instance=client)
+
+    return render(request, "clientTrackerApp/client_form.html", {
+        "form": form,
+        "client": client,   
+    })
+
+
+@login_required
+def client_delete(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+
+    if request.method == "POST":
+        name = client.name
+        client.delete()
+        messages.success(request, f"Client '{name}' deleted.")
+        return redirect("client-list")
+
+    return render(request, "clientTrackerApp/client_confirm_delete.html", {
+        "client": client,
+    })
 
