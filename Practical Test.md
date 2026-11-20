@@ -20,7 +20,7 @@
 - Auto Generated (User Doesnt Need to see this while generating) ✅ 
 - 3 Alphabetical Characters (Taken from the Name)
 - 3 Numbers (Auto-Increment based on any other existing similar Alpha Characters) ✅ 
-- If Name is shorter than 3 Characters, add any random letter
+- If Name is shorter than 3 Characters, add any random letter ✅
 - De-Link with Linked Contacts Option
 
 3. Linked Contacts - Foreign Key To be used for linking and De-Linking. One as to Many Relation
@@ -58,6 +58,14 @@
 
 3. #373737 - dark grey
 
+
+### Additional Updates
+
+1. Add ajax based search of the cards, 
+
+2. Add both a grid and a list viewing style
+
+3. Add Editing and Soft Delete
 
 
 
