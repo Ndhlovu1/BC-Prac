@@ -21,6 +21,5 @@ urlpatterns = [
     ),
 
     # path("login-code/", views.client_login, name="client-code-login"),
-    path("", views.client_dashboard, name="client-dashboard"),
 ]
 

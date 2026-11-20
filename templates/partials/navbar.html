@@ -22,14 +22,15 @@
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
         {% if user.is_authenticated %}
+          
           <li class="nav-item">
-            <a class="btn btn-outline-light btn-sm btn-rounded" href="{% url 'client-create' %}">
-              <i class="fas fa-plus me-1"></i> Client
+            <a class="btn btn-outline-light btn-sm btn-rounded" href="{% url 'client-list' %}">
+              <i class="fas fa-home me-1"></i> Client Dashboard
             </a>
           </li>
           <li class="nav-item">
             <a class="btn btn-outline-light btn-sm btn-rounded" href="{% url 'contact-create' %}">
-              <i class="fas fa-user-plus me-1"></i> Contact
+              <i class="fas fa-user-plus me-1"></i> Create Contact
             </a>
           </li>
         {% endif %}

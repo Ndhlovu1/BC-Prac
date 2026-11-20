@@ -46,8 +46,8 @@
       <thead style="background:#f8f9fb;">
         <tr class="text-muted small text-uppercase">
           <th class="ps-4">#</th>
+          <th>Last Name</th>
           <th>First Name</th>
-          <th>Surname</th>
           <th>Email</th>
           <th>Added</th>
         </tr>
@@ -56,8 +56,8 @@
         {% for contact in contacts %}
           <tr>
             <td class="ps-4 text-muted">{{ forloop.counter }}</td>
-            <td>{{ contact.first_name }}</td>
             <td>{{ contact.surname }}</td>
+            <td>{{ contact.first_name }}</td>
             <td><a href="mailto:{{ contact.email }}" class="text-decoration-none text-ct">{{ contact.email }}</a></td>
             <td class="text-muted small">{{ contact.created_at|date:"Y-m-d" }}</td>
           </tr>

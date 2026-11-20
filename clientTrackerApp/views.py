@@ -57,13 +57,3 @@ def contact_create(request, client_pk=None):
 
 
 
-@login_required
-def client_dashboard(request):
-    cid = request.session.get("client_id")
-    client = get_object_or_404(Client, id=cid)
-    return render(request, "clientTrackerApp/dashboard.html", {
-        "client": client,
-        "contacts": client.contacts.all(),
-    })
-
-
