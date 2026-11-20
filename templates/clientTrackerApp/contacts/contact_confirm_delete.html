@@ -14,13 +14,18 @@
         <p>
           Are you sure you want to delete
           <strong>{{ contact.first_name }} {{ contact.surname }}</strong>
-          ({{ contact.email }})?
+          <span class="text-muted">({{ contact.email }})</span>?
+        </p>
+        <p class="text-muted small mb-3">
+          This contact belongs to <strong>{{ client.name }}</strong>
+          <span class="code-badge">{{ client.code }}</span>.
+          This action cannot be undone.
         </p>
         <form method="post">
           {% csrf_token %}
           <div class="d-flex justify-content-end gap-2">
             <a class="btn btn-outline-secondary btn-rounded"
-               href="{% url 'client-detail' contact.client.pk %}">Cancel</a>
+               href="{% url 'client-detail' client.pk %}">Cancel</a>
             <button class="btn btn-ct btn-rounded shadow-1" type="submit">
               <i class="fas fa-trash me-1"></i> Yes, Delete
             </button>
@@ -31,4 +36,5 @@
   </div>
 </div>
 {% endblock %}
+
 

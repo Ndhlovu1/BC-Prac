@@ -50,9 +50,47 @@ def contact_create(request, client_pk=None):
 
     return render(
         request,
-        "clientTrackerApp/contact_form.html",
+        "clientTrackerApp/contacts/contact_form.html",
         {"form": form, "client": client},
     )
+
+
+@login_required
+def contact_edit(request, pk):
+    contact = get_object_or_404(Contact.objects.select_related("client"), pk=pk)
+
+    if request.method == "POST":
+        form = ContactForm(request.POST, instance=contact)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Contact updated.")
+            return redirect("client-detail", pk=contact.client_id)
+    else:
+        form = ContactForm(instance=contact)
+
+    return render(
+        request,
+        "clientTrackerApp/contacts/contact_edit.html",
+        {"form": form, "contact": contact, "client": contact.client},
+    )
+
+
+@login_required
+def contact_delete(request, pk):
+    contact = get_object_or_404(Contact.objects.select_related("client"), pk=pk)
+
+    if request.method == "POST":
+        client_pk = contact.client_id
+        contact.delete()
+        messages.success(request, "Contact deleted.")
+        return redirect("client-detail", pk=client_pk)
+
+    return render(
+        request,
+        "clientTrackerApp/contacts/contact_confirm_delete.html",
+        {"contact": contact, "client": contact.client},
+    )
+
 
 
 """
