@@ -1,0 +1,263 @@
+{% comment %} 
+  =====================================================================
+   -----------------------_client_results.html-------------------------
+
+    Renders: Grid View + List View + Pagination.
+    Context expected: clients (Page), page_obj (Page), q (str, optional)
+    (These are passed in the context of client_list.html)
+    Include path from client_list.html:
+     {% include "clientTrackerApp/clients/partial/_client_results.html" %}
+
+   ===================================================================== #} 
+   
+{% endcomment %}
+
+<!-- ============ GRID VIEW ============ -->
+<div id="gridView" class="row g-4">
+  {% for c in clients %}
+    <div class="col-md-6 col-lg-4 client-card"
+         data-name="{{ c.name|lower }}"
+         data-code="{{ c.code|lower }}">
+      <div class="card h-100 shadow-1 border-0 rounded-3">
+        <div class="card-body d-flex gap-3">
+          <div class="flex-shrink-0">
+            {% if c.logo %}
+              <img src="{{ c.logo.url }}" alt="{{ c.name }}" class="logo-thumb">
+            {% else %}
+              <span class="initials-box">
+                {% with words=c.name.split %}
+                  {% if words|length == 1 %}
+                    {{ words.0|slice:":1"|upper }}
+                  {% else %}
+                    {% for w in words|slice:":3" %}{{ w|slice:":1"|upper }}{% endfor %}
+                  {% endif %}
+                {% endwith %}
+              </span>
+            {% endif %}
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <h5 class="mb-1 fw-bold text-truncate">
+              <a href="{% url 'client-detail' c.pk %}"
+                 class="text-decoration-none text-dark">{{ c.name }}</a>
+            </h5>
+            <span class="code-badge">{{ c.code }}</span>
+            {% if not c.logo %}
+              <p class="text-muted small mt-2 mb-2">{{ c.initials_label }}</p>
+            {% endif %}
+            <p class="mb-0 small mt-2">
+              <i class="fas fa-users text-ct me-1"></i>
+              <strong>{{ c.contact_count }}</strong> contact{{ c.contact_count|pluralize }}
+            </p>
+          </div>
+        </div>
+        <div class="card-footer bg-white border-top-0 d-flex justify-content-between pt-0">
+          <a class="btn btn-sm btn-outline-ct btn-rounded"
+             href="{% url 'client-detail' c.pk %}">
+            <i class="fas fa-eye me-1"></i> View
+          </a>
+          <a class="btn btn-sm btn-outline-ct btn-rounded"
+             href="{% url 'client-edit' c.pk %}">
+            <i class="fas fa-pen me-1"></i> Edit
+          </a>
+          <a class="btn btn-sm btn-outline-ct btn-rounded"
+             href="{% url 'contact-create-for-client' c.pk %}">
+            <i class="fas fa-user-plus me-1"></i> Contact
+          </a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12">
+      <div class="empty-state shadow-1">
+        <i class="fas fa-folder-open"></i>
+        <h5 class="fw-bold">
+          {% if q %}No clients match "{{ q }}".{% else %}No client(s) found.{% endif %}
+        </h5>
+        <p class="mb-3">
+          {% if q %}
+            Try a different search term, or
+            <a href="{% url 'client-list' %}" class="text-ct">clear the search</a>.
+          {% else %}
+            Get started by creating your first client.
+          {% endif %}
+        </p>
+        {% if not q %}
+          <a class="btn btn-ct btn-rounded" href="{% url 'client-create' %}">
+            <i class="fas fa-plus me-1"></i> New Client
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- ============ LIST VIEW ============ -->
+<div id="listView" class="d-none">
+  <div class="card shadow-1 border-0 rounded-3">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#f8f9fb;">
+          <tr class="text-muted small text-uppercase">
+            <th class="ps-4">Client</th>
+            <th>Code</th>
+            <th>Contacts</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clients %}
+            <tr class="client-card-row"
+                data-name="{{ c.name|lower }}"
+                data-code="{{ c.code|lower }}">
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-3">
+                  {% if c.logo %}
+                    <img src="{{ c.logo.url }}" alt="{{ c.name }}"
+                         style="height:36px;width:36px;object-fit:contain;border-radius:6px;">
+                  {% else %}
+                    <span class="initials-box" style="width:36px;height:36px;font-size:.85rem;">
+                      {% with words=c.name.split %}
+                        {% if words|length == 1 %}
+                          {{ words.0|slice:":1"|upper }}
+                        {% else %}
+                          {% for w in words|slice:":3" %}{{ w|slice:":1"|upper }}{% endfor %}
+                        {% endif %}
+                      {% endwith %}
+                    </span>
+                  {% endif %}
+                  <div>
+                    <a href="{% url 'client-detail' c.pk %}"
+                       class="text-decoration-none fw-semibold text-dark">{{ c.name }}</a>
+                    {% if not c.logo %}
+                      <div class="small text-muted">{{ c.initials_label }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td><span class="code-badge">{{ c.code }}</span></td>
+              <td>
+                <span class="badge rounded-pill bg-light text-dark border">
+                  <i class="fas fa-users text-ct me-1"></i>{{ c.contact_count }}
+                </span>
+              </td>
+              <td class="text-end pe-4">
+                <a class="btn btn-sm btn-outline-ct btn-rounded"
+                   href="{% url 'client-detail' c.pk %}" title="View">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a class="btn btn-sm btn-outline-ct btn-rounded"
+                   href="{% url 'client-edit' c.pk %}" title="Edit">
+                  <i class="fas fa-pen"></i>
+                </a>
+                <a class="btn btn-sm btn-outline-ct btn-rounded"
+                   href="{% url 'contact-create-for-client' c.pk %}" title="Add Contact">
+                  <i class="fas fa-user-plus"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-5">
+                <i class="fas fa-folder-open d-block mb-2"
+                   style="font-size:1.75rem;color:#989898;"></i>
+                {% if q %}No clients match "{{ q }}".{% else %}No client(s) found.{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAGINATION ============ -->
+{% if page_obj.paginator.num_pages > 1 %}
+<div id="pagination" class="card shadow-1 border-0 rounded-3 mt-4">
+  <div class="card-body d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+    <div class="text-muted small">
+      Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+      of {{ page_obj.paginator.count }} client{{ page_obj.paginator.count|pluralize }}
+      &nbsp;·&nbsp; Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </div>
+
+    <nav aria-label="Client pagination">
+      <ul class="pagination mb-0">
+
+        <!-- FIRST -->
+        <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+          {% if page_obj.has_previous %}
+            <a class="page-link"
+               href="?page=1{% if q %}&q={{ q|urlencode }}{% endif %}"
+               title="First">
+              <i class="fas fa-angles-left"></i>
+            </a>
+          {% else %}
+            <span class="page-link"><i class="fas fa-angles-left"></i></span>
+          {% endif %}
+        </li>
+
+        <!-- PREVIOUS -->
+        <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+          {% if page_obj.has_previous %}
+            <a class="page-link"
+               href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+               title="Previous">
+              <i class="fas fa-chevron-left"></i> Prev
+            </a>
+          {% else %}
+            <span class="page-link"><i class="fas fa-chevron-left"></i> Prev</span>
+          {% endif %}
+        </li>
+
+        <!-- NUMBERS -->
+        {% for num in page_obj.paginator.page_range %}
+          {% if num == page_obj.number %}
+            <li class="page-item active">
+              <span class="page-link"
+                    style="background:#b51c10;border-color:#b51c10;color:#fff;">
+                {{ num }}
+              </span>
+            </li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+              <a class="page-link"
+                 href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}">
+                {{ num }}
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+
+        <!-- NEXT -->
+        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+          {% if page_obj.has_next %}
+            <a class="page-link"
+               href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+               title="Next">
+              Next <i class="fas fa-chevron-right"></i>
+            </a>
+          {% else %}
+            <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+          {% endif %}
+        </li>
+
+        <!-- LAST -->
+        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+          {% if page_obj.has_next %}
+            <a class="page-link"
+               href="?page={{ page_obj.paginator.num_pages }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+               title="Last">
+              <i class="fas fa-angles-right"></i>
+            </a>
+          {% else %}
+            <span class="page-link"><i class="fas fa-angles-right"></i></span>
+          {% endif %}
+        </li>
+
+      </ul>
+    </nav>
+  </div>
+</div>
+{% endif %}
+
+

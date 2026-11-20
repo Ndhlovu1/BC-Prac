@@ -5,23 +5,35 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
 from .forms import ClientForm, ContactForm
 from .models import Client, Contact
+from django.db.models import Q
+from django.template.loader import render_to_string
+from django.http import JsonResponse
 
 
 @login_required
 def client_list(request):
-    qs = (
-        Client.objects
-        .annotate(contact_count=Count("contacts"))
-        .order_by("name")
-    )
+    q = request.GET.get("q", "").strip()
 
-    paginator = Paginator(qs, 2)               
-    page_obj = paginator.get_page(request.GET.get("page"))
+    qs = Client.objects.annotate(contact_count=Count("contacts")).order_by("name")
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q))
+
+    page_obj = Paginator(qs, 10).get_page(request.GET.get("page"))
+
+    # --- AJAX branch: return just the results HTML ---
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        html = render_to_string(
+            "clientTrackerApp/clients/_client_results.html",
+            {"clients": page_obj, "page_obj": page_obj, "q": q},
+            request=request,
+        )
+        return JsonResponse({"html": html, "count": page_obj.paginator.count})
 
     return render(request, "clientTrackerApp/client_list.html", {
-        "clients": page_obj,                    
-        "page_obj": page_obj,                   
+        "clients": page_obj, "page_obj": page_obj, "q": q,
     })
+
+
 
 @login_required
 def client_detail(request, pk):
