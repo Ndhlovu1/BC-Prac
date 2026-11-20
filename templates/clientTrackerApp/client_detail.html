@@ -22,12 +22,18 @@
       <span class="code-badge">{{ client.code }}</span>
     </div>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-secondary btn-rounded" href="{% url 'client-list' %}">
       <i class="fas fa-arrow-left me-1"></i> Back
     </a>
+    <a class="btn btn-outline-ct btn-rounded" href="{% url 'client-edit' client.pk %}">
+      <i class="fas fa-pen me-1"></i> Edit
+    </a>
+    <a class="btn btn-outline-ct btn-rounded" href="{% url 'client-delete' client.pk %}">
+      <i class="fas fa-trash me-1"></i> Delete
+    </a>
     <a class="btn btn-ct btn-rounded shadow-1"
-       href="{% url 'contact-create-for-client' client.pk %}">
+      href="{% url 'contact-create-for-client' client.pk %}">
       <i class="fas fa-user-plus me-1"></i> Add Contact
     </a>
   </div>
