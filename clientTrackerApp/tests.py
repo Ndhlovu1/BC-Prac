@@ -313,3 +313,417 @@ class ClientFormTests(TestCase):
 """
 
 
+class ContactFormTests(TestCase):
+    def setUp(self):
+        self.client = Client.objects.create(name="Protea Hotel")
+
+    def test_without_prebound_client_field_shown(self):
+        form = ContactForm()
+        self.assertIn("client", form.fields)
+
+    def test_with_prebound_client_field_hidden(self):
+        form = ContactForm(client=self.client)
+        self.assertNotIn("client", form.fields)
+
+    def test_with_prebound_client_save_sets_client(self):
+        form = ContactForm(
+            data={"first_name": "Jane", "surname": "Doe",
+                  "email": "jane@example.com"},
+            client=self.client,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        contact = form.save()
+        self.assertEqual(contact.client, self.client)
+
+    def test_without_prebound_requires_client(self):
+        form = ContactForm(data={
+            "first_name": "Jane", "surname": "Doe",
+            "email": "jane@example.com", "client": "",
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("client", form.errors)
+
+    def test_duplicate_email_shows_form_error_not_500(self):
+        Contact.objects.create(
+            client=self.client, first_name="Jane", surname="Doe",
+            email="jane@example.com",
+        )
+        form = ContactForm(data={
+            "client": self.client.pk, "first_name": "Jane",
+            "surname": "Doe", "email": "jane@example.com",
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("email", form.errors)
+
+
+
+class StaffLoginFormTests(TestCase):
+    """
+    Custom form rejects non-staff users *after* Django's normal authentication
+    succeeds — with a specific "not staff" error, not a generic "invalid login".
+    """
+
+    def setUp(self):
+        self.staff = make_user("jdoe", is_staff=True)
+        self.plain = make_user("visitor", is_staff=False)
+
+    def test_valid_staff_credentials(self):
+        form = StaffLoginForm(data={"username": "jdoe", "password": "pass12345"})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.get_user(), self.staff)
+
+    def test_wrong_password_rejected(self):
+        form = StaffLoginForm(data={"username": "jdoe", "password": "wrong"})
+        self.assertFalse(form.is_valid())
+
+    def test_non_staff_user_rejected_with_specific_error(self):
+        form = StaffLoginForm(data={"username": "visitor", "password": "pass12345"})
+        self.assertFalse(form.is_valid())
+        # must NOT be the generic "invalid credentials" message
+        joined = " ".join(form.non_field_errors())
+        self.assertIn("staff access", joined.lower())
+
+    def test_inactive_user_rejected(self):
+        self.staff.is_active = False
+        self.staff.save()
+        form = StaffLoginForm(data={"username": "jdoe", "password": "pass12345"})
+        self.assertFalse(form.is_valid())
+
+
+class AuthViewTests(TestCase):
+    def setUp(self):
+        self.staff = make_user("jdoe", is_staff=True)
+        self.plain = make_user("visitor", is_staff=False)
+        self.login_url = reverse("staff-login")
+        self.logout_url = reverse("staff-logout")
+
+    def test_anonymous_redirected_to_login(self):
+        r = self.client.get(reverse("client-list"))
+        self.assertEqual(r.status_code, 302)
+        self.assertIn(self.login_url, r.url)
+
+    def test_staff_login_redirects_to_client_list(self):
+        r = self.client.post(self.login_url, {
+            "username": "jdoe", "password": "pass12345",
+        })
+        self.assertRedirects(r, reverse("client-list"))
+
+    def test_staff_login_honors_next_param(self):
+        r = self.client.post(
+            self.login_url + "?next=" + reverse("client-create"),
+            {"username": "jdoe", "password": "pass12345"},
+        )
+        self.assertRedirects(r, reverse("client-create"))
+
+    def test_staff_login_rejects_external_next(self):
+        r = self.client.post(
+            self.login_url + "?next=https://evil.example.com",
+            {"username": "jdoe", "password": "pass12345"},
+        )
+        # safe fallback
+        self.assertRedirects(r, reverse("client-list"))
+
+    def test_non_staff_login_rejected(self):
+        r = self.client.post(self.login_url, {
+            "username": "visitor", "password": "pass12345",
+        })
+        self.assertEqual(r.status_code, 200)  # re-renders form
+        self.assertFalse(r.wsgi_request.user.is_authenticated)
+
+    def test_logout_only_via_post(self):
+        self.client.force_login(self.staff)
+        r = self.client.get(self.logout_url)
+        self.assertEqual(r.status_code, 200)   # confirmation page, not logged out
+        self.assertTrue(r.wsgi_request.user.is_authenticated)
+
+        r = self.client.post(self.logout_url)
+        self.assertRedirects(r, self.login_url)
+        r = self.client.get(reverse("client-list"))
+        self.assertEqual(r.status_code, 302)   # now anonymous again
+
+    def test_already_logged_in_staff_bounces_to_list(self):
+        self.client.force_login(self.staff)
+        r = self.client.get(self.login_url)
+        self.assertRedirects(r, reverse("client-list"))
+
+
+
+class ClientViewsTests(TestCase):
+    def setUp(self):
+        self.staff = make_user("jdoe", is_staff=True)
+        self.client.force_login(self.staff)
+
+    def test_create_client_generates_code(self):
+        r = self.client.post(reverse("client-create"), {"name": "Protea Hotel"})
+        self.assertEqual(r.status_code, 302)
+        c = Client.objects.get(name="Protea Hotel")
+        self.assertRegex(c.code, r"^PRO\d{3}$")
+
+    def test_edit_client_keeps_code(self):
+        c = Client.objects.create(name="Protea Hotel")
+        original = c.code
+        r = self.client.post(
+            reverse("client-edit", args=[c.pk]), {"name": "Protea Hotel & Spa"},
+        )
+        self.assertEqual(r.status_code, 302)
+        c.refresh_from_db()
+        self.assertEqual(c.name, "Protea Hotel & Spa")
+        self.assertEqual(c.code, original)
+
+    def test_delink_client_marks_flag_and_orphans_contacts(self):
+        c = Client.objects.create(name="Protea Hotel")
+        Contact.objects.create(client=c, first_name="Jane", surname="Doe",
+                               email="jane@example.com")
+        Contact.objects.create(client=c, first_name="John", surname="Smith",
+                               email="john@example.com")
+
+        r = self.client.post(reverse("client-delink", args=[c.pk]))
+        self.assertRedirects(r, reverse("delinked-clients"))
+
+        c.refresh_from_db()
+        self.assertTrue(c.is_delinked)
+        self.assertIsNotNone(c.delinked_at)
+        self.assertEqual(c.contacts.count(), 0)
+        self.assertEqual(Contact.objects.filter(client__isnull=True).count(), 2)
+
+    def test_delink_already_delinked_client_is_idempotent(self):
+        c = Client.objects.create(name="Protea Hotel", is_delinked=True)
+        r = self.client.post(reverse("client-delink", args=[c.pk]))
+        self.assertRedirects(r, reverse("delinked-clients"))
+
+    def test_delinked_client_not_in_active_list(self):
+        active = Client.objects.create(name="Active Co")
+        archived = Client.objects.create(name="Archived Co", is_delinked=True)
+        r = self.client.get(reverse("client-list"))
+        qs = r.context["clients"]
+        self.assertIn(active, list(qs))
+        self.assertNotIn(archived, list(qs))
+
+    def test_relink_client_clears_flag(self):
+        c = Client.objects.create(name="Protea Hotel", is_delinked=True,
+                                  delinked_at=timezone.now())
+        r = self.client.post(reverse("client-relink", args=[c.pk]))
+        self.assertEqual(r.status_code, 302)
+        c.refresh_from_db()
+        self.assertFalse(c.is_delinked)
+        self.assertIsNone(c.delinked_at)
+
+
+
+class ContactViewsTests(TestCase):
+    def setUp(self):
+        self.staff = make_user("jdoe", is_staff=True)
+        self.client.force_login(self.staff)
+        self.client_obj = Client.objects.create(name="Protea Hotel")
+
+    def test_contact_create_from_client_url_binds_client(self):
+        r = self.client.post(
+            reverse("contact-create-for-client", args=[self.client_obj.pk]),
+            {"first_name": "Jane", "surname": "Doe",
+             "email": "jane@example.com"},
+        )
+        self.assertEqual(r.status_code, 302)
+        c = Contact.objects.get(email="jane@example.com")
+        self.assertEqual(c.client, self.client_obj)
+
+    def test_delink_ajax_sets_client_null(self):
+        contact = Contact.objects.create(
+            client=self.client_obj, first_name="Jane",
+            surname="Doe", email="jane@example.com",
+        )
+        r = self.client.post(
+            reverse("contact-delink", args=[contact.pk]),
+            {"client_id": self.client_obj.pk},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertTrue(data["ok"])
+        contact.refresh_from_db()
+        self.assertIsNone(contact.client)
+
+    def test_delink_rejects_non_ajax_request(self):
+        contact = Contact.objects.create(
+            client=self.client_obj, first_name="Jane",
+            surname="Doe", email="jane@example.com",
+        )
+        r = self.client.post(reverse("contact-delink", args=[contact.pk]))
+        self.assertEqual(r.status_code, 400)
+
+    def test_delink_rejects_wrong_client_id(self):
+        contact = Contact.objects.create(
+            client=self.client_obj, first_name="Jane",
+            surname="Doe", email="jane@example.com",
+        )
+        other = Client.objects.create(name="Other Co")
+        r = self.client.post(
+            reverse("contact-delink", args=[contact.pk]),
+            {"client_id": other.pk},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(r.status_code, 400)
+        contact.refresh_from_db()
+        self.assertEqual(contact.client, self.client_obj,
+                         "Wrong client_id must NOT delink")
+
+    def test_delink_already_delinked_returns_400(self):
+        contact = Contact.objects.create(
+            first_name="Jane", surname="Doe", email="jane@example.com",
+        )
+        r = self.client.post(
+            reverse("contact-delink", args=[contact.pk]),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_relink_sets_client(self):
+        contact = Contact.objects.create(
+            first_name="Jane", surname="Doe", email="jane@example.com",
+        )
+        r = self.client.post(
+            reverse("contact-relink", args=[contact.pk]),
+            {"client": self.client_obj.pk},
+        )
+        self.assertEqual(r.status_code, 302)
+        contact.refresh_from_db()
+        self.assertEqual(contact.client, self.client_obj)
+
+    def test_delinked_contacts_page_only_shows_orphans(self):
+        Contact.objects.create(client=self.client_obj, first_name="A",
+                               surname="A", email="a@a.com")
+        orphan = Contact.objects.create(first_name="B", surname="B",
+                                        email="b@b.com")
+        r = self.client.get(reverse("delinked-contacts"))
+        qs = list(r.context["contacts"])
+        self.assertEqual(qs, [orphan])
+
+
+
+class AuditLogTests(TestCase):
+    """
+    Verifies that every create/update/delink/relink produces a historical row
+    with the correct history_type. `history_user` is not exercised here because
+    it's populated by `HistoryRequestMiddleware` on real HTTP requests only.
+    """
+
+    def test_create_produces_plus_revision(self):
+        c = Client.objects.create(name="Protea Hotel")
+        self.assertEqual(c.history.count(), 1)
+        self.assertEqual(c.history.first().history_type, "+")
+
+    def test_update_produces_tilde_revision_with_diff(self):
+        c = Client.objects.create(name="Protea Hotel")
+        c.name = "Protea Hotel & Spa"
+        c.save()
+        latest = c.history.first()
+        self.assertEqual(latest.history_type, "~")
+        prev = latest.prev_record
+        self.assertIsNotNone(prev)
+        diff = latest.diff_against(prev)
+        self.assertIn("name", [ch.field for ch in diff.changes])
+
+    def test_hard_delete_keeps_minus_revision(self):
+        c = Client.objects.create(name="Protea Hotel")
+        pk = c.pk
+        c.delete()
+        # historical row survives delete
+        history_qs = Client.history.filter(id=pk)
+        self.assertTrue(history_qs.exists())
+        self.assertEqual(history_qs.first().history_type, "-")
+
+    def test_delink_produces_update_revision(self):
+        c = Client.objects.create(name="Protea Hotel")
+        c.is_delinked = True
+        c.delinked_at = timezone.now()
+        c.save()
+        latest = c.history.first()
+        self.assertEqual(latest.history_type, "~")
+
+    def test_contact_client_change_is_logged(self):
+        c1 = Client.objects.create(name="Protea Hotel")
+        c2 = Client.objects.create(name="Hilton")
+        ct = Contact.objects.create(client=c1, first_name="Jane",
+                                    surname="Doe", email="jane@example.com")
+        ct.client = None
+        ct.save()
+        latest = ct.history.first()
+        self.assertIsNone(latest.client)
+        self.assertEqual(latest.history_type, "~")
+        self.assertEqual(latest.prev_record.client, c1)
+
+
+
+class AuditAdminTests(TestCase):
+    def setUp(self):
+        self.admin = make_user("admin", is_superuser=True, is_staff=True)
+        self.client.force_login(self.admin)
+
+    def test_historical_client_list_renders(self):
+        Client.objects.create(name="Protea Hotel")
+        r = self.client.get(reverse(
+            "admin:clientTrackerApp_historicalclient_changelist"))
+        self.assertEqual(r.status_code, 200)
+
+    def test_historical_contact_list_renders(self):
+        c = Client.objects.create(name="Protea Hotel")
+        Contact.objects.create(client=c, first_name="Jane",
+                               surname="Doe", email="jane@example.com")
+        r = self.client.get(reverse(
+            "admin:clientTrackerApp_historicalcontact_changelist"))
+        self.assertEqual(r.status_code, 200)
+
+    def test_historical_add_is_blocked(self):
+        r = self.client.get(reverse(
+            "admin:clientTrackerApp_historicalclient_add"))
+        self.assertEqual(r.status_code, 403)
+
+    def test_historical_change_is_blocked(self):
+        c = Client.objects.create(name="Protea Hotel")
+        hist = c.history.first()
+        r = self.client.get(reverse(
+            "admin:clientTrackerApp_historicalclient_change", args=[hist.pk]))
+        self.assertEqual(r.status_code, 403)
+
+
+class DelinkRoundTripTests(TestCase):
+    """
+    The whole reason for Option B is that a delink is reversible.
+    This proves a contact can go client -> None -> client and every
+    step is captured in history.
+    """
+
+    def setUp(self):
+        self.staff = make_user("jdoe", is_staff=True)
+        self.client.force_login(self.staff)
+        self.c = Client.objects.create(name="Protea Hotel")
+        self.contact = Contact.objects.create(
+            client=self.c, first_name="Jane", surname="Doe",
+            email="jane@example.com",
+        )
+
+    def test_roundtrip_preserves_contact_and_history(self):
+        # delink
+        r = self.client.post(
+            reverse("contact-delink", args=[self.contact.pk]),
+            {"client_id": self.c.pk},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(r.status_code, 200)
+
+        # relink to the same client
+        r = self.client.post(
+            reverse("contact-relink", args=[self.contact.pk]),
+            {"client": self.c.pk},
+        )
+        self.assertEqual(r.status_code, 302)
+
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.client, self.c)
+
+        # 1 create + 1 delink (~) + 1 relink (~) = 3 historical rows
+        self.assertEqual(self.contact.history.count(), 3)
+        types = list(self.contact.history.values_list("history_type", flat=True))
+        self.assertEqual(types.count("+"), 1)
+        self.assertEqual(types.count("~"), 2)
+
+
