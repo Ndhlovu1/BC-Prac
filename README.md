@@ -5,7 +5,7 @@
 
 *IDEALY HAVE PYTHON3.10+ WITH PIP INSTALLED*
 
-1. Install Pipenv `pip install pipenv` : You can do this anywhere
+1. Install Pipenv `pip install pipenv` : You can do this anywhere( Only if you dont already have this installed)
 
 2. Activate the virtual environment `pipenv shell` : Do this in the project directory,, where you have the files Pipfile  and Pipfile.lock
 
