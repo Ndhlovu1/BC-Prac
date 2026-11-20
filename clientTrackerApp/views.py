@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.http import JsonResponse
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 
 staff_required = user_passes_test(
@@ -26,7 +27,7 @@ def client_list(request):
 
     page_obj = Paginator(qs, 10).get_page(request.GET.get("page"))
 
-    # --- AJAX branch: return just the results HTML ---
+    # --- AJAX branch: return just the results HTML and pass them to a partial ---
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         html = render_to_string(
             "clientTrackerApp/clients/_client_results.html",
@@ -211,5 +212,105 @@ def staff_logout(request):
         return redirect("staff-login")
     # GET → render a tiny confirmation page instead of logging out silently
     return render(request, "auth/logout.html")
+
+
+"""
+#######################################################
+ AJAX DELINK — set contact.client = None (does NOT delete)
+#######################################################
+"""
+@login_required
+@staff_required
+@require_POST
+def contact_delink(request, pk):
+    if request.headers.get("x-requested-with") != "XMLHttpRequest":
+        return JsonResponse({"ok": False, "error": "AJAX only"}, status=400)
+
+    contact = get_object_or_404(Contact.objects.select_related("client"), pk=pk)
+
+    client_id = request.POST.get("client_id")
+    if client_id and str(contact.client_id) != str(client_id):
+        return JsonResponse(
+            {"ok": False, "error": "Contact does not belong to this client."},
+            status=400,
+        )
+
+    if contact.client_id is None:
+        return JsonResponse({"ok": False, "error": "Contact is already delinked."}, status=400)
+
+    name = f"{contact.first_name} {contact.surname}"
+    contact.client = None
+    contact.save(update_fields=["client"])
+
+    return JsonResponse({
+        "ok": True,
+        "message": f'"{name}" has been delinked.',
+        "contact_id": contact.pk,
+        "client_id": client_id,
+    })
+
+
+"""
+# ######################################################
+# DELINKED CONTACTS LIST
+# ######################################################
+"""
+
+
+@login_required
+@staff_required
+def delinked_contacts(request):
+    q = request.GET.get("q", "").strip()
+    qs = Contact.objects.filter(client__isnull=True).order_by("surname", "first_name")
+
+    if q:
+        qs = qs.filter(
+            Q(first_name__icontains=q) |
+            Q(surname__icontains=q) |
+            Q(email__icontains=q)
+        )
+
+    return render(request, "clientTrackerApp/contacts/delinked_list.html", {
+        "contacts": qs,
+        "q": q,
+        "total_clients": Client.objects.count(),
+    })
+
+
+"""
+# ######################################################
+# RE-LINK A DELINKED CONTACT TO A CLIENT (option C target)
+# ######################################################
+"""
+
+
+@login_required
+@staff_required
+def contact_relink(request, pk):
+    contact = get_object_or_404(Contact, pk=pk)
+
+    if contact.client_id is not None:
+        messages.info(request, "That contact is already linked to a client.")
+        return redirect("client-detail", pk=contact.client_id)
+
+    if request.method == "POST":
+        client_id = request.POST.get("client")
+        client = Client.objects.filter(pk=client_id).first() if client_id else None
+        if not client:
+            messages.error(request, "Please select a client.")
+        else:
+            contact.client = client
+            contact.save(update_fields=["client"])
+            messages.success(
+                request,
+                f'"{contact.first_name} {contact.surname}" relinked to {client.name}.'
+            )
+            return redirect("client-detail", pk=client.pk)
+
+    clients = Client.objects.order_by("name")
+    return render(request, "clientTrackerApp/contacts/contact_relink.html", {
+        "contact": contact,
+        "clients": clients,
+    })
 
 

@@ -26,7 +26,9 @@ urlpatterns = [
     path("contacts/<int:pk>/edit/", views.contact_edit, name="contact-edit"),
     path("contacts/<int:pk>/delete/", views.contact_delete, name="contact-delete"),
 
-    # Optional code-login
-    # path("login-code/", views.client_login, name="client-code-login"),
-    # path("dashboard/", views.client_dashboard, name="client-dashboard"),
+    # Delinking and Linking Contacts
+    path("contacts/<int:pk>/delink/", views.contact_delink, name="contact-delink"),
+    path("contacts/delinked/",      views.delinked_contacts, name="delinked-contacts"),
+    path("contacts/<int:pk>/relink/", views.contact_relink, name="contact-relink"),
+    
 ]

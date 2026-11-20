@@ -45,7 +45,7 @@
       <i class="fas fa-users text-ct me-2"></i>
       <strong>Contacts</strong>
     </div>
-    <span class="badge bg-ct rounded-pill">{{ contacts|length }}</span>
+    <span class="badge bg-ct rounded-pill" id="contactsCount">{{ contacts|length }}</span>
   </div>
 
   <div class="card-body">
@@ -62,7 +62,8 @@
       </thead>
       <tbody>
         {% for contact in contacts %}
-          <tr>
+          <tr data-contact-id="{{ contact.pk }}"
+              data-contact-name="{{ contact.first_name }} {{ contact.surname }}">
             <td class="text-muted">{{ forloop.counter }}</td>
             <td>{{ contact.first_name }}</td>
             <td>{{ contact.surname }}</td>
@@ -79,10 +80,13 @@
                  href="{% url 'contact-edit' contact.pk %}" title="Edit">
                 <i class="fas fa-pen"></i>
               </a>
-              <a class="btn btn-sm btn-outline-ct btn-rounded"
-                 href="{% url 'contact-delete' contact.pk %}" title="Delete">
-                <i class="fas fa-trash"></i>
-              </a>
+              <button type="button"
+                      class="btn btn-sm btn-outline-danger btn-rounded js-delink-contact"
+                      title="Delink from this client"
+                      data-contact-id="{{ contact.pk }}"
+                      data-contact-name="{{ contact.first_name }} {{ contact.surname }}">
+                <i class="fas fa-link-slash"></i>
+              </button>
             </td>
           </tr>
         {% empty %}
@@ -98,21 +102,61 @@
     </table>
   </div>
 </div>
+
+<!-- ============ DELINK CONFIRMATION MODAL ============ -->
+<div class="modal fade" id="delinkModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-3 shadow-1">
+
+      <div class="modal-header text-white" style="background:#b51c10;">
+        <h5 class="modal-title fw-bold">
+          <i class="fas fa-link-slash me-2"></i> Delink Contact
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-mdb-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-2">
+          Are you sure you want to delink
+          <strong id="delinkContactName">this contact</strong>
+          from <strong>{{ client.name }}</strong>?
+        </p>
+        <p class="text-muted small mb-0">
+          The contact will be <strong>kept in the system</strong> and can be
+          re-linked to another client later from the
+          <a href="{% url 'delinked-contacts' %}" class="text-ct">Delinked Contacts</a>
+          page.
+        </p>
+        <div id="delinkError" class="alert alert-danger mt-3 mb-0 d-none"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-rounded"
+                data-mdb-dismiss="modal">Cancel</button>
+        <button type="button" id="delinkConfirmBtn"
+                class="btn btn-danger btn-rounded shadow-1">
+          <i class="fas fa-link-slash me-1"></i> Yes, Delink
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- CSRF token (JS reads this) -->
+<form id="csrfForm" class="d-none">{% csrf_token %}</form>
 {% endblock %}
 
 {% block extra_js %}
-<!-- jQuery is already loaded in base.html; DataTables only needs to be added here -->
-<link rel="stylesheet"
-      href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet"
-      href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 
 <style>
-  /* Match DataTables controls to Client Tracker theme */
   .dataTables_wrapper .dataTables_filter input,
   .dataTables_wrapper .dataTables_length select {
     border-radius: 50rem;
@@ -156,30 +200,38 @@
   }
   table.dataTable tbody tr:hover { background: #f8f9fb; }
 
-  /* Responsive child row style */
   table.dataTable.dtr-inline.collapsed > tbody > tr > td.dtr-control:before {
     background-color: #b51c10;
     border: none;
     box-shadow: none;
   }
+
+  /* Smooth banner slide-in */
+  @keyframes slideInBanner {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .banner-animate { animation: slideInBanner .25s ease-out; }
 </style>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const hasRows = document.querySelectorAll('#contactsTable tbody tr td:not([colspan])').length > 0;
+document.addEventListener('DOMContentLoaded', function () {
 
-    // If there are no real rows, don't init DataTables (avoids "No data" duplication)
-    if (!hasRows) return;
+  // ------------------------------------------------------------------
+  // DataTables init
+  // ------------------------------------------------------------------
+  const hasRows = document.querySelectorAll('#contactsTable tbody tr td:not([colspan])').length > 0;
 
+  if (hasRows) {
     $('#contactsTable').DataTable({
       responsive: true,
       autoWidth: false,
       pageLength: 10,
       lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, 'All']],
-      order: [[4, 'desc']],           // newest "Added" first
+      order: [[4, 'desc']],
       columnDefs: [
-        { targets: 0, width: '48px' },   // #
-        { targets: 5, orderable: false, searchable: false }  // Actions
+        { targets: 0, width: '48px' },
+        { targets: 5, orderable: false, searchable: false }
       ],
       language: {
         search: '',
@@ -198,9 +250,107 @@
         }
       }
     });
+  }
+
+  // ------------------------------------------------------------------
+  // Delink modal wiring
+  // ------------------------------------------------------------------
+  const modalEl     = document.getElementById('delinkModal');
+  const delinkModal = new mdb.Modal(modalEl, { backdrop: 'static' });
+  const nameEl      = document.getElementById('delinkContactName');
+  const confirmBtn  = document.getElementById('delinkConfirmBtn');
+  const errorEl     = document.getElementById('delinkError');
+
+  let pendingContactId = null;
+
+  const csrfToken = document.querySelector('#csrfForm input[name="csrfmiddlewaretoken"]').value;
+  const clientId  = "{{ client.pk }}";
+
+  // Open modal when any delink button is clicked
+  document.querySelectorAll('.js-delink-contact').forEach(btn => {
+    btn.addEventListener('click', function () {
+      pendingContactId = this.dataset.contactId;
+      nameEl.textContent = this.dataset.contactName;
+      errorEl.classList.add('d-none');
+      errorEl.textContent = '';
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i class="fas fa-link-slash me-1"></i> Yes, Delink';
+      delinkModal.show();
+    });
   });
+
+  // Confirm → AJAX POST
+  confirmBtn.addEventListener('click', function () {
+    if (!pendingContactId) return;
+
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Delinking…';
+    errorEl.classList.add('d-none');
+
+    fetch(`/contacts/${pendingContactId}/delink/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: new URLSearchParams({ client_id: clientId }),
+    })
+    .then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) throw new Error(data.error || 'Failed to delink contact.');
+      return data;
+    })
+    .then((data) => {
+      // ---- Remove row from DataTables (or plain table) ----
+      const row = document.querySelector(`#contactsTable tbody tr[data-contact-id="${pendingContactId}"]`);
+
+      if (window.jQuery && jQuery.fn.DataTable && jQuery.fn.DataTable.isDataTable('#contactsTable')) {
+        const dt = jQuery('#contactsTable').DataTable();
+        jQuery(row).fadeOut(200, function () {
+          dt.row(this).remove().draw(false);
+          updateCounter();
+        });
+      } else if (row) {
+        row.remove();
+        updateCounter();
+      }
+
+      // ---- Success banner at the top of the card ----
+      const card = document.querySelector('.card.shadow-1');
+      if (card) {
+        const banner = document.createElement('div');
+        banner.className = 'alert alert-success shadow-1 d-flex align-items-center gap-2 banner-animate mb-3';
+        banner.innerHTML =
+          '<i class="fas fa-circle-check"></i>' +
+          '<span>' + (data.message || 'Contact delinked.') +
+          ' <a href="{% url "delinked-contacts" %}" class="alert-link">View delinked contacts</a>.</span>' +
+          '<button type="button" class="btn-close ms-auto" aria-label="Close"></button>';
+
+        card.parentElement.insertBefore(banner, card);
+
+        banner.querySelector('.btn-close').addEventListener('click', () => banner.remove());
+        setTimeout(() => banner.remove(), 6000);
+      }
+
+      delinkModal.hide();
+    })
+    .catch((err) => {
+      errorEl.textContent = err.message || 'Something went wrong.';
+      errorEl.classList.remove('d-none');
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i class="fas fa-link-slash me-1"></i> Yes, Delink';
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // Update the "Contacts" badge count after removal
+  // ------------------------------------------------------------------
+  function updateCounter() {
+    const badge = document.getElementById('contactsCount');
+    if (!badge) return;
+    const remaining = document.querySelectorAll('#contactsTable tbody tr[data-contact-id]').length;
+    badge.textContent = remaining;
+  }
+});
 </script>
 {% endblock %}
-
-
-

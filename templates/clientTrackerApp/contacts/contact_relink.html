@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Relink {{ contact.first_name }} {{ contact.surname }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-1 border-0 rounded-3">
+      <div class="card-header card-header-clean">
+        <h4 class="mb-0 fw-bold">
+          <i class="fas fa-link text-ct me-2"></i> Relink Contact
+        </h4>
+      </div>
+      <div class="card-body">
+        <p class="mb-4">
+          Relink <strong>{{ contact.first_name }} {{ contact.surname }}</strong>
+          (<a href="mailto:{{ contact.email }}" class="text-ct text-decoration-none">{{ contact.email }}</a>)
+          to a client.
+        </p>
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} shadow-1">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-4">
+            <label for="client" class="form-label fw-medium">
+              Client <span class="text-danger">*</span>
+            </label>
+            <select id="client" name="client" class="form-select" required>
+              <option value="" disabled selected>Select a client…</option>
+              {% for c in clients %}
+                <option value="{{ c.pk }}">{{ c.name }} ({{ c.code }})</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">
+              Don't see the right client?
+              <a href="{% url 'client-create' %}" class="text-ct">Create one first</a>,
+              then come back.
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2">
+            <a class="btn btn-outline-secondary btn-rounded"
+               href="{% url 'delinked-contacts' %}">Cancel</a>
+            <button type="submit" class="btn btn-ct btn-rounded shadow-1">
+              <i class="fas fa-link me-1"></i> Relink
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
