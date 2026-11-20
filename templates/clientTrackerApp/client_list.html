@@ -114,6 +114,15 @@
   .page-item.active .page-link { background:#b51c10; border-color:#b51c10; color:#fff; }
   .page-item.disabled .page-link { color:#adb5bd !important; background:#f8f9fa; }
 
+  /* Defeat .row / MDB specificity when a view is hidden */
+  #gridView.d-none,
+  #listView.d-none {
+    display: none !important;
+  }
+
+  /* Pagination visible only in list mode (JS toggles display) */
+  #pagination { display: none; }
+
   .client-card,
   .client-card-row {
     transition: opacity .2s ease;
@@ -135,34 +144,50 @@
 
   function setViewMode(mode) {
     currentViewMode = mode;
-    localStorage.setItem('clientViewMode', mode);
+    try { localStorage.setItem('clientViewMode', mode); } catch (e) { /* ignore */ }
 
     const gridView = document.getElementById('gridView');
     const listView = document.getElementById('listView');
     const gridBtn  = document.getElementById('gridViewBtn');
     const listBtn  = document.getElementById('listViewBtn');
 
-    if (!gridView || !listView) return;   // safety: after AJAX reload before swap
-
-    if (mode === 'grid') {
-      gridView.classList.remove('d-none');
-      listView.classList.add('d-none');
-      gridBtn.style.background = '#2c3649';
-      gridBtn.style.color = '#fff';
-      listBtn.style.background = '#b51c10';
-      listBtn.style.color = '#fff';
-    } else {
-      gridView.classList.add('d-none');
-      listView.classList.remove('d-none');
-      listBtn.style.background = '#b51c10';
-      listBtn.style.color = '#fff';
-      gridBtn.style.background = '#2c3649';
-      gridBtn.style.color = '#fff';
+    // 1) Recolor buttons first — instant visual feedback even if something else fails
+    if (gridBtn && listBtn) {
+      if (mode === 'grid') {
+        gridBtn.style.background = '#2c3649'; gridBtn.style.color = '#fff';
+        listBtn.style.background = '#b51c10'; listBtn.style.color = '#fff';
+      } else {
+        listBtn.style.background = '#b51c10'; listBtn.style.color = '#fff';
+        gridBtn.style.background = '#2c3649'; gridBtn.style.color = '#fff';
+      }
     }
 
+    // 2) If partial isn't in the DOM, warn LOUDLY
+    if (!gridView || !listView) {
+      console.warn(
+        '[client_list] setViewMode: #gridView or #listView not found. ' +
+        'Check include path of _client_results.html.'
+      );
+      return;
+    }
+
+    // 3) Toggle class AND inline display (defeats rogue CSS)
+    if (mode === 'grid') {
+      gridView.classList.remove('d-none');
+      gridView.style.display = '';
+      listView.classList.add('d-none');
+      listView.style.display = 'none';
+    } else {
+      gridView.classList.add('d-none');
+      gridView.style.display = 'none';
+      listView.classList.remove('d-none');
+      listView.style.display = '';
+    }
+
+    // 4) Pagination only in list mode
     const pagination = document.getElementById('pagination');
     if (pagination) {
-      pagination.style.display = mode === 'list' ? 'block' : 'none';
+      pagination.style.display = (mode === 'list') ? '' : 'none';
     }
   }
 
@@ -188,15 +213,12 @@
         resultsWrap.innerHTML = data.html;
         resultsWrap.classList.remove('is-loading');
 
-        // Keep page title/counter in sync
         if (typeof data.count === 'number' && totalCount) {
           totalCount.textContent = data.count;
         }
 
-        // Sync URL (bookmarkable without reload)
         history.replaceState({}, '', url);
 
-        // Update search chrome
         if (q) {
           activeTerm.textContent = q;
           activeBox.classList.remove('d-none');
@@ -206,10 +228,7 @@
           clearBtn.classList.add('d-none');
         }
 
-        // Reapply chosen view mode + pagination visibility
         setViewMode(currentViewMode);
-
-        // Re-bind the pagination <a>s inside the newly swapped HTML
         bindPaginationAjax();
       })
       .catch(() => resultsWrap.classList.remove('is-loading'));
@@ -256,6 +275,10 @@
   document.addEventListener('DOMContentLoaded', function () {
     setViewMode(currentViewMode);
     bindPaginationAjax();
+
+    // 👇 WIRE THE TOGGLE BUTTONS — this is what was missing
+    document.getElementById('gridViewBtn').addEventListener('click', () => setViewMode('grid'));
+    document.getElementById('listViewBtn').addEventListener('click', () => setViewMode('list'));
 
     // Keyboard shortcuts
     document.addEventListener('keydown', function (e) {
