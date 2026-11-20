@@ -7,6 +7,14 @@ from django.core.validators import EmailValidator
 from django.utils.text import slugify
 
 
+
+"""
+#############################################################
+        HELPER FUNCTIONS FOR CLIENT TRACKER APP
+#############################################################
+
+"""
+
 # Needed for generating unique initials for clients
 def _initials(name: str) -> str:
     """
@@ -60,7 +68,86 @@ def generate_client_code(name: str) -> str:
 
     return f"{prefix}{next_num:03d}"
 
+"""
+#############################################################
+        MODELS DEFINITION FOR CLIENT TRACKER APP
+#############################################################
 
+"""
+
+class Client(models.Model):
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=6, unique=True, blank=True, editable=False)
+    logo = models.ImageField(upload_to="client_logos/", blank=True, null=True)
+
+    # Reverse relation to contacts via M2M below (a client has many contacts)
+    # We use a M2M through-style via Contact.client FK -> so one client → many contacts
+    # but contacts can also belong to many clients (matching the "select2 to link
+    # more than one client to a contact" workflow).
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+    
+    # Displaying the logo or initials is useful for the select2 dropdowns, so users can see the logo if uploaded, otherwise the initials. 
+    @property
+    def logo_display(self) -> str:
+        """
+        If a logo exists -> return its URL.
+        If omitted -> fall back to initials: 'Protea Hotel (PH)' / 'Hilton (H)'
+        """
+        if self.logo:
+            return self.logo.url
+        return self.initials_label
+
+    # Displaying with the initials in parentheses is useful for the select2 dropdowns, so users can see the initials even if no logo is uploaded.
+    @property
+    def initials_label(self) -> str:
+        """e.g. 'Protea Hotel (PH)' or 'Hilton (H)'"""
+        words = [w for w in self.name.split() if w]
+        if not words:
+            return f"{self.name} ()"
+        if len(words) == 1:
+            short = words[0][0].upper()
+        else:
+            short = "".join(w[0].upper() for w in words)
+        return f"{self.name} ({short})"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = generate_client_code(self.name)
+        super().save(*args, **kwargs)
+
+
+class Contact(models.Model):
+    first_name = models.CharField(max_length=100)
+    surname = models.CharField(max_length=100)
+    email = models.EmailField(unique=True, validators=[EmailValidator()])
+
+    # A contact can be linked to one or more clients (select2 during form)
+    clients = models.ManyToManyField(
+        Client,
+        related_name="contacts",
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["surname", "first_name"]
+
+    def __str__(self):
+        return f"{self.first_name} {self.surname}"
+
+    @property
+    def linked_clients_count(self) -> int:
+        return self.clients.count()
+
+    
 
 
 
