@@ -16,8 +16,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf.urls.static import static
+from django.conf import settings
+
+admin.site.site_header = "CLIENT TRACKER | MANAGEMENT"
+admin.site.site_title = "CLIENT TRACKER | ADMIN"
+admin.site.index_title = "CLIENT TRACKER | ADMIN"
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('clientTrackerApp.urls')),
 ]
+
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
