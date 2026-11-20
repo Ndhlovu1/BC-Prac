@@ -35,20 +35,24 @@ def client_create(request):
         form = ClientForm()
     return render(request, "clientTrackerApp/client_form.html", {"form": form})
 
-
 @login_required
 def contact_create(request, client_pk=None):
     client = get_object_or_404(Client, pk=client_pk) if client_pk else None
 
     if request.method == "POST":
-        form = ContactForm(request.POST, client=client) if client else ContactForm(request.POST)
+        form = ContactForm(request.POST, client=client)
         if form.is_valid():
-            form.save()
+            contact = form.save()
             messages.success(request, "Contact added.")
-            return redirect("client-detail", pk=form.instance.client_id)
+            return redirect("client-detail", pk=contact.client_id)
     else:
-        form = ContactForm(client=client) if client else ContactForm()
-    return render(request, "clientTrackerApp/contact_form.html", {"form": form, "client": client})
+        form = ContactForm(client=client)
+
+    return render(
+        request,
+        "clientTrackerApp/contact_form.html",
+        {"form": form, "client": client},
+    )
 
 
 
