@@ -1,10 +1,8 @@
 import random
 import string
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.core.validators import EmailValidator
-from django.utils.text import slugify
+from simple_history.models import HistoricalRecords
 
 
 
@@ -77,6 +75,7 @@ class Client(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_delinked = models.BooleanField(default=False, db_index=True)
     delinked_at = models.DateTimeField(null=True, blank=True)
+    history = HistoricalRecords()  
 
     class Meta:
         ordering = ["name"]
@@ -111,6 +110,7 @@ class Contact(models.Model):
     surname    = models.CharField(max_length=100)
     email      = models.EmailField(unique=True, validators=[EmailValidator()])
     created_at = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords()  
 
     class Meta:
         ordering = ["surname", "first_name"]
@@ -122,6 +122,7 @@ class Contact(models.Model):
     def is_delinked(self) -> bool:
         return self.client_id is None
     
+
 
 
 
