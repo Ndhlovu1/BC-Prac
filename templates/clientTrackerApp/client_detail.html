@@ -33,7 +33,7 @@
       <i class="fas fa-trash me-1"></i> Delete
     </a>
     <a class="btn btn-ct btn-rounded shadow-1"
-      href="{% url 'contact-create-for-client' client.pk %}">
+       href="{% url 'contact-create-for-client' client.pk %}">
       <i class="fas fa-user-plus me-1"></i> Add Contact
     </a>
   </div>
@@ -48,33 +48,39 @@
     <span class="badge bg-ct rounded-pill">{{ contacts|length }}</span>
   </div>
 
-  <div class="table-responsive">
-    <table class="table table-hover mb-0 align-middle">
+  <div class="card-body">
+    <table id="contactsTable" class="table table-hover align-middle mb-0" style="width:100%;">
       <thead style="background:#f8f9fb;">
         <tr class="text-muted small text-uppercase">
-          <th class="ps-4">#</th>
+          <th>#</th>
           <th>First Name</th>
           <th>Surname</th>
           <th>Email</th>
           <th>Added</th>
-          <th class="text-end pe-4">Actions</th>
+          <th class="text-end pe-4" data-orderable="false">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for contact in contacts %}
           <tr>
-            <td class="ps-4 text-muted">{{ forloop.counter }}</td>
+            <td class="text-muted">{{ forloop.counter }}</td>
             <td>{{ contact.first_name }}</td>
             <td>{{ contact.surname }}</td>
-            <td><a href="mailto:{{ contact.email }}" class="text-decoration-none text-ct">{{ contact.email }}</a></td>
-            <td class="text-muted small">{{ contact.created_at|date:"Y-m-d" }}</td>
+            <td>
+              <a href="mailto:{{ contact.email }}"
+                 class="text-decoration-none text-ct">{{ contact.email }}</a>
+            </td>
+            <td class="text-muted small"
+                data-order="{{ contact.created_at|date:'Y-m-d' }}">
+              {{ contact.created_at|date:"Y-m-d" }}
+            </td>
             <td class="text-end pe-4">
               <a class="btn btn-sm btn-outline-ct btn-rounded"
-                href="{% url 'contact-edit' contact.pk %}" title="Edit">
+                 href="{% url 'contact-edit' contact.pk %}" title="Edit">
                 <i class="fas fa-pen"></i>
               </a>
               <a class="btn btn-sm btn-outline-ct btn-rounded"
-                href="{% url 'contact-delete' contact.pk %}" title="Delete">
+                 href="{% url 'contact-delete' contact.pk %}" title="Delete">
                 <i class="fas fa-trash"></i>
               </a>
             </td>
@@ -82,7 +88,8 @@
         {% empty %}
           <tr>
             <td colspan="6" class="text-center text-muted py-5">
-              <i class="fas fa-user-slash d-block mb-2" style="font-size:1.75rem;color:#989898;"></i>
+              <i class="fas fa-user-slash d-block mb-2"
+                 style="font-size:1.75rem;color:#989898;"></i>
               No contacts yet for this client.
             </td>
           </tr>
@@ -92,5 +99,108 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<!-- jQuery is already loaded in base.html; DataTables only needs to be added here -->
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+<style>
+  /* Match DataTables controls to Client Tracker theme */
+  .dataTables_wrapper .dataTables_filter input,
+  .dataTables_wrapper .dataTables_length select {
+    border-radius: 50rem;
+    border: 1px solid #dcdcdc;
+    padding: .4rem .9rem;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .dataTables_wrapper .dataTables_filter input:focus,
+  .dataTables_wrapper .dataTables_length select:focus {
+    border-color: #b51c10;
+    box-shadow: 0 0 0 .2rem rgba(181,28,16,.15);
+  }
+  .dataTables_wrapper .dataTables_filter label,
+  .dataTables_wrapper .dataTables_length label,
+  .dataTables_wrapper .dataTables_info {
+    color: #6c757d;
+    font-size: .875rem;
+  }
+
+  .dataTables_wrapper .pagination .page-link {
+    color: #b51c10;
+    border-radius: .4rem;
+    margin: 0 .15rem;
+    border: 1px solid #e9ecef;
+  }
+  .dataTables_wrapper .pagination .page-item.active .page-link {
+    background: #b51c10;
+    border-color: #b51c10;
+    color: #fff;
+  }
+  .dataTables_wrapper .pagination .page-item.disabled .page-link {
+    color: #adb5bd;
+    background: #f8f9fa;
+  }
+
+  table.dataTable thead th {
+    border-bottom: 1px solid #eef0f3 !important;
+    font-weight: 600;
+    letter-spacing: .5px;
+  }
+  table.dataTable tbody tr:hover { background: #f8f9fb; }
+
+  /* Responsive child row style */
+  table.dataTable.dtr-inline.collapsed > tbody > tr > td.dtr-control:before {
+    background-color: #b51c10;
+    border: none;
+    box-shadow: none;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const hasRows = document.querySelectorAll('#contactsTable tbody tr td:not([colspan])').length > 0;
+
+    // If there are no real rows, don't init DataTables (avoids "No data" duplication)
+    if (!hasRows) return;
+
+    $('#contactsTable').DataTable({
+      responsive: true,
+      autoWidth: false,
+      pageLength: 10,
+      lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, 'All']],
+      order: [[4, 'desc']],           // newest "Added" first
+      columnDefs: [
+        { targets: 0, width: '48px' },   // #
+        { targets: 5, orderable: false, searchable: false }  // Actions
+      ],
+      language: {
+        search: '',
+        searchPlaceholder: 'Search contacts…',
+        lengthMenu: 'Show _MENU_ entries',
+        info: 'Showing _START_ to _END_ of _TOTAL_ contacts',
+        infoEmpty: 'No contacts',
+        infoFiltered: '(filtered from _MAX_ total)',
+        zeroRecords: 'No matching contacts found',
+        emptyTable: 'No contacts yet for this client.',
+        paginate: {
+          first:    '<i class="fas fa-angles-left"></i>',
+          previous: '<i class="fas fa-chevron-left"></i>',
+          next:     '<i class="fas fa-chevron-right"></i>',
+          last:     '<i class="fas fa-angles-right"></i>'
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}
+
 
 
