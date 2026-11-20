@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Delinked Clients{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+  <div>
+    <h3 class="mb-1 fw-bold">
+      <i class="fas fa-link-slash text-ct me-2"></i> Delinked Clients
+    </h3>
+    <p class="text-muted mb-0 small">
+      Clients that have been soft-deleted. Their contacts are unlinked and live
+      on the
+      <a href="{% url 'delinked-contacts' %}" class="text-ct">Delinked Contacts</a>
+      page.
+    </p>
+  </div>
+  <a class="btn btn-outline-secondary btn-rounded" href="{% url 'client-list' %}">
+    <i class="fas fa-arrow-left me-1"></i> Active Clients
+  </a>
+</div>
+
+<div class="card shadow-1 border-0 rounded-3">
+  <div class="card-header card-header-clean d-flex justify-content-between align-items-center">
+    <div>
+      <i class="fas fa-box-archive text-ct me-2"></i>
+      <strong>Archived Clients</strong>
+    </div>
+    <span class="badge bg-ct rounded-pill">{{ clients|length }}</span>
+  </div>
+
+  <div class="card-body">
+    <table id="delinkedClientsTable" class="table table-hover align-middle mb-0" style="width:100%;">
+      <thead style="background:#f8f9fb;">
+        <tr class="text-muted small text-uppercase">
+          <th>Client</th>
+          <th>Code</th>
+          <th>Delinked At</th>
+          <th class="text-end pe-4" data-orderable="false">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clients %}
+          <tr data-client-id="{{ c.pk }}">
+            <td>
+              <div class="d-flex align-items-center gap-3">
+                {% if c.logo %}
+                  <img src="{{ c.logo.url }}" alt="{{ c.name }}"
+                       style="height:36px;width:36px;object-fit:contain;border-radius:6px;">
+                {% else %}
+                  <span class="initials-box" style="width:36px;height:36px;font-size:.85rem;">
+                    {% with words=c.name.split %}
+                      {% if words|length == 1 %}
+                        {{ words.0|slice:":1"|upper }}
+                      {% else %}
+                        {% for w in words|slice:":3" %}{{ w|slice:":1"|upper }}{% endfor %}
+                      {% endif %}
+                    {% endwith %}
+                  </span>
+                {% endif %}
+                <div>
+                  <div class="fw-semibold text-dark">{{ c.name }}</div>
+                  {% if not c.logo %}
+                    <div class="small text-muted">{{ c.initials_label }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td><span class="code-badge">{{ c.code }}</span></td>
+            <td class="text-muted small"
+                data-order="{{ c.delinked_at|date:'Y-m-d H:i' }}">
+              {% if c.delinked_at %}{{ c.delinked_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <a class="btn btn-sm btn-ct btn-rounded shadow-1"
+                 href="{% url 'client-relink' c.pk %}" title="Relink client">
+                <i class="fas fa-link me-1"></i> Relink
+              </a>
+              <a class="btn btn-sm btn-outline-danger btn-rounded"
+                 href="{% url 'client-delete' c.pk %}" title="Delete permanently">
+                <i class="fas fa-trash"></i>
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="text-center text-muted py-5">
+              <i class="fas fa-circle-check d-block mb-2"
+                 style="font-size:1.75rem;color:#989898;"></i>
+              No delinked clients — everything is active.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+<style>
+  .dataTables_wrapper .dataTables_filter input,
+  .dataTables_wrapper .dataTables_length select {
+    border-radius: 50rem; border: 1px solid #dcdcdc;
+    padding: .4rem .9rem; outline: none; transition: border-color .2s;
+  }
+  .dataTables_wrapper .dataTables_filter input:focus,
+  .dataTables_wrapper .dataTables_length select:focus {
+    border-color: #b51c10; box-shadow: 0 0 0 .2rem rgba(181,28,16,.15);
+  }
+  .dataTables_wrapper .pagination .page-link {
+    color: #b51c10; border-radius: .4rem; margin: 0 .15rem;
+    border: 1px solid #e9ecef;
+  }
+  .dataTables_wrapper .pagination .page-item.active .page-link {
+    background: #b51c10; border-color: #b51c10; color: #fff;
+  }
+  .dataTables_wrapper .pagination .page-item.disabled .page-link {
+    color: #adb5bd; background: #f8f9fa;
+  }
+  table.dataTable thead th {
+    border-bottom: 1px solid #eef0f3 !important;
+    font-weight: 600; letter-spacing: .5px;
+  }
+  table.dataTable tbody tr:hover { background: #f8f9fb; }
+  table.dataTable.dtr-inline.collapsed > tbody > tr > td.dtr-control:before {
+    background-color: #b51c10; border: none; box-shadow: none;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const hasRows = document.querySelectorAll('#delinkedClientsTable tbody tr td:not([colspan])').length > 0;
+  if (!hasRows) return;
+
+  $('#delinkedClientsTable').DataTable({
+    responsive: true,
+    autoWidth: false,
+    pageLength: 10,
+    lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, 'All']],
+    order: [[2, 'desc']],
+    columnDefs: [
+      { targets: 3, orderable: false, searchable: false }
+    ],
+    language: {
+      search: '',
+      searchPlaceholder: 'Search delinked clients…',
+      lengthMenu: 'Show _MENU_ entries',
+      info: 'Showing _START_ to _END_ of _TOTAL_ clients',
+      infoEmpty: 'No delinked clients',
+      infoFiltered: '(filtered from _MAX_ total)',
+      zeroRecords: 'No matching clients found',
+      emptyTable: 'No delinked clients.',
+      paginate: {
+        first:    '<i class="fas fa-angles-left"></i>',
+        previous: '<i class="fas fa-chevron-left"></i>',
+        next:     '<i class="fas fa-chevron-right"></i>',
+        last:     '<i class="fas fa-angles-right"></i>'
+      }
+    }
+  });
+});
+</script>
+{% endblock %}
+
+

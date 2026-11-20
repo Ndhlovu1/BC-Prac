@@ -11,35 +11,37 @@ from django.http import JsonResponse
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from django.utils import timezone
+from django.db import transaction
 
 
 staff_required = user_passes_test(
     lambda u: u.is_active and u.is_staff, login_url="staff-login")
 
 @login_required
-@staff_required
 def client_list(request):
     q = request.GET.get("q", "").strip()
 
-    qs = Client.objects.annotate(contact_count=Count("contacts")).order_by("name")
+    qs = (
+        Client.objects
+        .filter(is_delinked=False)          # ← exclude archived
+        .annotate(contact_count=Count("contacts"))
+        .order_by("name")
+    )
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q))
 
     page_obj = Paginator(qs, 10).get_page(request.GET.get("page"))
+    context = {"clients": page_obj, "page_obj": page_obj, "q": q}
 
-    # --- AJAX branch: return just the results HTML and pass them to a partial ---
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         html = render_to_string(
-            "clientTrackerApp/clients/_client_results.html",
-            {"clients": page_obj, "page_obj": page_obj, "q": q},
-            request=request,
+            "clientTrackerApp/clients/partial/_client_results.html",
+            context, request=request,
         )
         return JsonResponse({"html": html, "count": page_obj.paginator.count})
 
-    return render(request, "clientTrackerApp/client_list.html", {
-        "clients": page_obj, "page_obj": page_obj, "q": q,
-    })
-
+    return render(request, "clientTrackerApp/client_list.html", context)
 
 @login_required
 @staff_required
@@ -279,7 +281,7 @@ def delinked_contacts(request):
 
 """
 # ######################################################
-# RE-LINK A DELINKED CONTACT TO A CLIENT (option C target)
+# RE-LINK A DELINKED CONTACT TO A CLIENT 
 # ######################################################
 """
 
@@ -312,5 +314,106 @@ def contact_relink(request, pk):
         "contact": contact,
         "clients": clients,
     })
+
+
+
+
+"""
+# ######################################################
+# # DELINK A CLIENT (soft-delete + cascade-unlink its contacts)
+# ######################################################
+"""
+
+@login_required
+@staff_required
+def client_delink(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+
+    if client.is_delinked:
+        messages.info(request, "This client is already delinked.")
+        return redirect("delinked-clients")
+
+    if request.method == "POST":
+        with transaction.atomic():
+            # 1) Unlink every contact that belongs to this client
+            unlinked = client.contacts.update(client=None)
+
+            # 2) Mark the client as delinked
+            client.is_delinked = True
+            client.delinked_at = timezone.now()
+            client.save(update_fields=["is_delinked", "delinked_at"])
+
+        messages.success(
+            request,
+            f'"{client.name}" was delinked. '
+            f'{unlinked} contact{"s" if unlinked != 1 else ""} were also unlinked.'
+        )
+        return redirect("delinked-clients")
+
+    # GET → confirmation page
+    return render(request, "clientTrackerApp/clients/client_delink_confirm.html", {
+        "client": client,
+        "contact_count": client.contacts.count(),
+    })
+
+
+# ------------------------------------------------------------------
+# LIST OF DELINKED CLIENTS (+ their (now-delinked) contacts)
+# ------------------------------------------------------------------
+@login_required
+@staff_required
+def delinked_clients(request):
+    q = request.GET.get("q", "").strip()
+
+    qs = Client.objects.filter(is_delinked=True).order_by("-delinked_at", "name")
+
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q))
+
+    return render(request, "clientTrackerApp/clients/delinked_clients.html", {
+        "clients": qs,
+        "q": q,
+    })
+
+
+# ------------------------------------------------------------------
+# RE-LINK A DELINKED CLIENT (+ optionally its contacts back)
+# ------------------------------------------------------------------
+@login_required
+@staff_required
+def client_relink(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+
+    if not client.is_delinked:
+        messages.info(request, "That client is already active.")
+        return redirect("client-detail", pk=client.pk)
+
+    if request.method == "POST":
+        with transaction.atomic():
+            client.is_delinked = False
+            client.delinked_at = None
+            client.save(update_fields=["is_delinked", "delinked_at"])
+
+            # Optional: reattach orphans that share this client's code prefix
+            relink_contacts = request.POST.get("relink_contacts") == "on"
+            if relink_contacts:
+                # Match any orphaned contact whose email was associated with this
+                # client's code (nothing reliable to match on otherwise).
+                # If you track this in a history table, plug that query in here.
+                pass
+
+        messages.success(request, f'"{client.name}" has been relinked.')
+        return redirect("client-detail", pk=client.pk)
+
+    orphans = Contact.objects.filter(client__isnull=True).order_by("surname", "first_name")
+
+    return render(request, "clientTrackerApp/clients/client_relink.html", {
+        "client": client,
+        "orphans": orphans,
+    })
+
+
+
+
 
 

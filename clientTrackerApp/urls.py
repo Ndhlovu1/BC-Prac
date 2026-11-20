@@ -30,5 +30,10 @@ urlpatterns = [
     path("contacts/<int:pk>/delink/", views.contact_delink, name="contact-delink"),
     path("contacts/delinked/",      views.delinked_contacts, name="delinked-contacts"),
     path("contacts/<int:pk>/relink/", views.contact_relink, name="contact-relink"),
+
+ # Delinking/Soft-Delete and Restoring Clients
+    path("clients/<int:pk>/delink/", views.client_delink,   name="client-delink"),
+    path("clients/delinked/",       views.delinked_clients, name="delinked-clients"),
+    path("clients/<int:pk>/relink/", views.client_relink,   name="client-relink"),
     
 ]
