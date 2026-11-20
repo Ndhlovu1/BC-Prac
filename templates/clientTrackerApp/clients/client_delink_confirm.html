@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Delink {{ client.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+    <div class="card shadow-1 rounded-3" style="border:1px solid #b51c10;">
+      <div class="card-header text-white rounded-top-3" style="background:#b51c10;">
+        <h5 class="mb-0 fw-bold">
+          <i class="fas fa-link-slash me-2"></i> Delink Client
+        </h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">
+          You are about to delink <strong>{{ client.name }}</strong>
+          <span class="code-badge">{{ client.code }}</span>.
+        </p>
+
+        <div class="alert alert-warning shadow-1 d-flex gap-2 align-items-start">
+          <i class="fas fa-triangle-exclamation mt-1"></i>
+          <div>
+            This will:
+            <ul class="mb-0 mt-1">
+              <li>Mark the client as <strong>delinked</strong> (not deleted).</li>
+              <li>
+                Unlink <strong>{{ contact_count }}</strong>
+                contact{{ contact_count|pluralize }} from this client.
+                They will appear on the
+                <a href="{% url 'delinked-contacts' %}" class="alert-link">Delinked Contacts</a>
+                page and can be re-linked later.
+              </li>
+              <li>The client itself will move to the <a href="{% url 'delinked-clients' %}" class="alert-link">Delinked Clients</a> page.</li>
+            </ul>
+          </div>
+        </div>
+
+        <form method="post" class="mt-4">
+          {% csrf_token %}
+          <div class="d-flex justify-content-between gap-2 flex-wrap">
+            <a class="btn btn-outline-secondary btn-rounded" href="{% url 'client-detail' client.pk %}">
+              Cancel
+            </a>
+            <div class="d-flex gap-2">
+              
+              <button type="submit" class="btn btn-ct btn-rounded shadow-1">
+                <i class="fas fa-link-slash me-1"></i> Yes, Delink
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

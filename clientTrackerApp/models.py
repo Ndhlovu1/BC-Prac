@@ -75,6 +75,8 @@ class Client(models.Model):
     code = models.CharField(max_length=6, unique=True, blank=True, editable=False)
     logo = models.ImageField(upload_to="client_logos/", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_delinked = models.BooleanField(default=False, db_index=True)
+    delinked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -82,7 +84,7 @@ class Client(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
-    #
+    
     @property
     def initials_label(self) -> str:
         """'Protea Hotel (PH)' or 'Hilton (H)' — used when no logo is uploaded."""
@@ -104,11 +106,10 @@ class Client(models.Model):
 
 # Model for Contact associated with a Client
 class Contact(models.Model):
-    # One contact belongs to exactly ONE client (many contacts per client).
-    client = models.ForeignKey(Client, on_delete=models.CASCADE,related_name="contacts",)
+    client = models.ForeignKey(Client,on_delete=models.SET_NULL, null=True,blank=True, related_name="contacts",)
     first_name = models.CharField(max_length=100)
-    surname = models.CharField(max_length=100)
-    email = models.EmailField(unique=True, validators=[EmailValidator()])
+    surname    = models.CharField(max_length=100)
+    email      = models.EmailField(unique=True, validators=[EmailValidator()])
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -116,6 +117,10 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.surname}"
+
+    @property
+    def is_delinked(self) -> bool:
+        return self.client_id is None
     
 
 

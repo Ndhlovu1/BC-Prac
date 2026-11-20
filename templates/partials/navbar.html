@@ -1,41 +1,233 @@
 {% load static %}
-<nav class="navbar navbar-expand-lg navbar-dark" 
-  style="
-    background:#b51c10; 
-    box-shadow:0 2px 6px rgba(255, 0, 0, 0.43);
-    margin: 20px;
-    border-radius: 10px;
-  "
-    
->
-  <div class="container">
-    <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'client-list' %}">
-      <img src="{% static 'img/logo.png' %}" alt="Client Tracker"
-           style="height: 120px; width: 320px;  border-radius:6px; background:#fff;"> | 
-      <span>Client Tracker</span>
-    </a>
-    <button class="navbar-toggler" type="button" data-mdb-toggle="collapse"
-            data-mdb-target="#mainNav" aria-controls="mainNav"
-            aria-expanded="false" aria-label="Toggle navigation">
-      <i class="fas fa-bars"></i>
-    </button>
-    <div class="collapse navbar-collapse" id="mainNav">
-      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-        {% if user.is_authenticated %}
-          
-          <li class="nav-item">
-            <a class="btn btn-outline-light btn-sm btn-rounded" href="{% url 'client-list' %}">
-              <i class="fas fa-home me-1"></i> Client Dashboard
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="btn btn-outline-light btn-sm btn-rounded" href="{% url 'contact-create' %}">
-              <i class="fas fa-user-plus me-1"></i> Create Contact
-            </a>
-          </li>
-        {% endif %}
-      </ul>
+
+{% if user.is_authenticated %}
+<nav class="navbar navbar-expand-lg navbar-dark"
+    style="
+        background: #b51c10;
+        box-shadow: 0 2px 8px rgba(240, 27, 12, 0.5);
+        margin: 20px;
+        border-radius: 10px;
+        padding: 10px 15px;
+    ">
+
+    <div class="container-fluid">
+
+        <!-- Brand / Logo -->
+        <a class="navbar-brand d-flex align-items-center gap-2"
+           href="{% url 'client-list' %}">
+
+            <img src="{% static 'img/logo.png' %}"
+                 alt="Client Tracker Logo"
+                 class="navbar-logo"
+                 style="
+                    width: 190px;
+                    height: 65px;
+                    object-fit: contain;
+                    object-position: left center;
+                    background: #fff;
+                    border-radius: 6px;
+                    padding: 4px;
+                    display: block;
+                 ">
+
+            <span style="font-size:28px;">|</span>
+
+            <span class="fw-bold text-white d-none d-md-inline">
+                Client Tracker
+            </span>
+        </a>
+
+        <!-- Mobile Toggle -->
+        <button class="navbar-toggler" type="button"
+                data-mdb-toggle="collapse"
+                data-mdb-target="#mainNav"
+                aria-controls="mainNav"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Navigation Links -->
+        <div class="collapse navbar-collapse" id="mainNav">
+
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2 mt-3 mt-lg-0">
+
+                <!-- Client Dashboard -->
+                <li class="nav-item">
+                    <a class="btn btn-outline-light btn-sm btn-rounded"
+                       href="{% url 'client-list' %}">
+                        <i class="fas fa-home me-1"></i>
+                        Client Dashboard
+                    </a>
+                </li>
+
+                <!-- Create Contact -->
+                <li class="nav-item">
+                    <a class="btn btn-outline-light btn-sm btn-rounded"
+                       href="{% url 'contact-create' %}">
+                        <i class="fas fa-user-plus me-1"></i>
+                        Create Contact
+                    </a>
+                </li>
+
+                <li class="nav-item d-none d-lg-block">
+                    <span class="text-white opacity-50 px-1">|</span>
+                </li>
+
+                <!-- Delinked Dropdown -->
+                <li class="nav-item dropdown">
+
+                    <a class="btn btn-outline-light btn-sm btn-rounded dropdown-toggle"
+                       href="#"
+                       id="delinkedDropdown"
+                       role="button"
+                       data-mdb-toggle="dropdown"
+                       aria-expanded="false">
+
+                        <i class="fas fa-unlink me-1"></i>
+                        Delinked
+
+                        {% if delinked_count or delinked_clients_count %}
+                            <span class="badge bg-light text-danger ms-1">
+                                {{ delinked_count|default:0|add:delinked_clients_count|default:0 }}
+                            </span>
+                        {% endif %}
+                    </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end shadow"
+                        aria-labelledby="delinkedDropdown"
+                        style="border-radius: 10px; min-width: 220px;">
+
+                        <!-- Delinked Contacts -->
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center py-2"
+                               href="{% url 'delinked-contacts' %}">
+
+                                <span>
+                                    <i class="fas fa-link-slash me-2 text-danger"></i>
+                                    Delinked Contacts
+                                </span>
+
+                                {% if delinked_count %}
+                                    <span class="badge bg-danger rounded-pill">
+                                        {{ delinked_count }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </li>
+
+                        <li><hr class="dropdown-divider my-1"></li>
+
+                        <!-- Delinked Clients -->
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center py-2"
+                               href="{% url 'delinked-clients' %}">
+
+                                <span>
+                                    <i class="fas fa-box-archive me-2 text-danger"></i>
+                                    Delinked Clients
+                                </span>
+
+                                {% if delinked_clients_count %}
+                                    <span class="badge bg-danger rounded-pill">
+                                        {{ delinked_clients_count }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <!-- Manage Organization -->
+                <li class="nav-item">
+                    <a class="btn btn-outline-light btn-sm btn-rounded"
+                       href="{% url 'admin:index' %}">
+                        <i class="fas fa-building me-1"></i>
+                        Manage Organization
+                    </a>
+                </li>
+
+                <li class="nav-item d-none d-lg-block">
+                    <span class="text-white opacity-50 px-1">|</span>
+                </li>
+
+                <!-- Sign Out -->
+                <li class="nav-item">
+                    <form method="post" action="{% url 'staff-logout' %}" class="d-inline">
+                        {% csrf_token %}
+
+                        <button type="submit"
+                                class="btn btn-outline-light btn-sm btn-rounded">
+                            <i class="fas fa-right-from-bracket me-1"></i>
+                            Sign Out
+                        </button>
+                    </form>
+                </li>
+
+            </ul>
+        </div>
     </div>
-  </div>
 </nav>
 
+<style>
+    .navbar-logo {
+        transition: transform 0.2s ease;
+    }
+
+    .navbar-logo:hover {
+        transform: scale(1.03);
+    }
+
+    .navbar .dropdown-menu {
+        border: none;
+        padding: 8px;
+    }
+
+    .navbar .dropdown-item {
+        border-radius: 6px;
+        font-size: 13px;
+        transition: all 0.2s ease;
+    }
+
+    .navbar .dropdown-item:hover {
+        background: #fff0ee;
+        color: #b51c10;
+    }
+
+    .navbar .dropdown-item i {
+        width: 18px;
+    }
+
+    @media (max-width: 991px) {
+        .navbar-logo {
+            width: 155px !important;
+            height: 55px !important;
+        }
+
+        .navbar-nav {
+            align-items: stretch !important;
+        }
+
+        .navbar-nav .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .navbar-nav .nav-item > .btn {
+            width: 100%;
+            text-align: left;
+        }
+
+        .navbar-nav .dropdown-menu {
+            margin-top: 5px;
+            width: 100%;
+        }
+
+        .navbar-nav .dropdown-menu .dropdown-item {
+            white-space: normal;
+        }
+    }
+</style>
+
+{% endif %}

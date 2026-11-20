@@ -1,7 +1,18 @@
 from django.urls import path
 from . import views
+from .forms import *
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
+
+
+
+    path("login/",  auth_views.LoginView.as_view(
+        template_name="auth/login.html",
+        authentication_form=StaffLoginForm,redirect_authenticated_user=True,), name="staff-login"),
+
+    path("logout/", auth_views.LogoutView.as_view(next_page="staff-login"), name="staff-logout"),
+
     # Clients
     path("", views.client_list, name="client-list"),
     path("clients/new/", views.client_create, name="client-create"),
@@ -15,7 +26,14 @@ urlpatterns = [
     path("contacts/<int:pk>/edit/", views.contact_edit, name="contact-edit"),
     path("contacts/<int:pk>/delete/", views.contact_delete, name="contact-delete"),
 
-    # Optional code-login
-    # path("login-code/", views.client_login, name="client-code-login"),
-    # path("dashboard/", views.client_dashboard, name="client-dashboard"),
+    # Delinking and Linking Contacts
+    path("contacts/<int:pk>/delink/", views.contact_delink, name="contact-delink"),
+    path("contacts/delinked/",      views.delinked_contacts, name="delinked-contacts"),
+    path("contacts/<int:pk>/relink/", views.contact_relink, name="contact-relink"),
+
+ # Delinking/Soft-Delete and Restoring Clients
+    path("clients/<int:pk>/delink/", views.client_delink,   name="client-delink"),
+    path("clients/delinked/",       views.delinked_clients, name="delinked-clients"),
+    path("clients/<int:pk>/relink/", views.client_relink,   name="client-relink"),
+    
 ]

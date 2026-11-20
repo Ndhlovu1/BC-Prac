@@ -1,23 +1,71 @@
 {% load static %}
+
 <footer class="mt-auto"
     style="
-        background:#fff;
-        box-shadow:0 2px 6px rgba(255, 0, 0, 0.43);
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(255, 8, 8, 0.22);
         margin: 20px;
         border-radius: 10px;
-        ">
-  <div class="container">
-    <div class="row align-items-center g-3">
-      <div class="col-md-6 d-flex align-items-center gap-2">
-        <img src="{% static 'img/logo.png' %}" alt="Client Tracker"
-             style="height:120px; width:320px; object-fit:cover; border-radius:4px; background:#fff;">
-        
-      </div>
-      <div class="col-md-6 text-md-end small">
-        &copy; {% now "Y" %} Client Tracker. All rights reserved.
-      </div>
+        padding: 15px 20px;
+    ">
+
+    <div class="container">
+        <div class="row align-items-center g-3">
+
+            <!-- Logo -->
+            <div class="col-md-6 d-flex align-items-center">
+                <a href="/" class="d-inline-flex align-items-center">
+                    <img src="{% static 'img/logo.png' %}"
+                         alt="Client Tracker"
+                         class="footer-logo"
+                         style="
+                            display: block;
+                            max-width: 100%;
+                            width: 220px;
+                            height: 75px;
+                            object-fit: contain;
+                            object-position: left center;
+                         ">
+                </a>
+            </div>
+
+            <!-- Copyright -->
+            <div class="col-md-6 text-md-end">
+                <small class="text-muted">
+                    &copy; {% now "Y" %} Client Tracker.
+                    All rights reserved.
+                </small>
+            </div>
+
+        </div>
     </div>
-  </div>
 </footer>
 
+<style>
+    .footer-logo {
+        transition: transform 0.2s ease;
+    }
+
+    .footer-logo:hover {
+        transform: scale(1.02);
+    }
+
+    @media (max-width: 767px) {
+        footer {
+            text-align: center;
+        }
+
+        .footer-logo {
+            width: 190px !important;
+            height: 65px !important;
+            margin: 0 auto;
+            object-position: center;
+        }
+
+        footer .row > div {
+            justify-content: center !important;
+            text-align: center !important;
+        }
+    }
+</style>
 

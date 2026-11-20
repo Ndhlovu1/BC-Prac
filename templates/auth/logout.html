@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Sign Out{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height:60vh;">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow-1 border-0 rounded-3 text-center">
+      <div class="card-body p-5">
+        <div class="initials-box mx-auto mb-3" style="width:64px;height:64px;font-size:1.5rem;">
+          <i class="fas fa-right-from-bracket"></i>
+        </div>
+        <h4 class="fw-bold mb-2">Sign out?</h4>
+        <p class="text-muted mb-4">You are signed in as <strong>{{ user.get_short_name|default:user.username }}</strong>.</p>
+        <form method="post" action="{% url 'staff-logout' %}" class="d-flex gap-2 justify-content-center">
+          {% csrf_token %}
+          <a href="{% url 'client-list' %}" class="btn btn-outline-secondary btn-rounded px-4">Cancel</a>
+          <button type="submit" class="btn btn-ct btn-rounded px-4 shadow-1">
+            <i class="fas fa-right-from-bracket me-1"></i> Sign Out
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
