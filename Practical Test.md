@@ -7,6 +7,8 @@
 
 1. Super User ✅ 
 
+2. Staff User 
+
 ## Clients
 
 ### Model & Form Definition
@@ -27,6 +29,9 @@
 
 1. Additionally allow clients to be able to login using their code in-order to view clients linked to them only. 
 
+2. Add Client Logo Upload - Makes for easier Visibility
+
+3. 
 
 
 ## Contacts
@@ -40,6 +45,12 @@
 3. Email Address(Unique=True)
 
 4. Number of Linked Clients (A counter)
+
+
+## Workflow
+
+**Optionally an authenticated User Signs into the System, and is able to add a single client at a time, and then is able to have a select2 to link more than one client to a contact during the form creation**
+
 
 
 
