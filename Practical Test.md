@@ -21,20 +21,18 @@
 - 3 Alphabetical Characters (Taken from the Name)
 - 3 Numbers (Auto-Increment based on any other existing similar Alpha Characters) ✅ 
 - If Name is shorter than 3 Characters, add any random letter ✅
-- De-Link with Linked Contacts Option
+- De-Link with Linked Contacts Option ✅ 
 
-3. Linked Contacts - Foreign Key To be used for linking and De-Linking. One as to Many Relation
+3. Linked Contacts - Foreign Key To be used for linking and De-Linking. One as to Many Relation ✅ 
 
 ### Optional
 
-1. Additionally allow clients to be able to login using their code in-order to view clients linked to them only. 
-
-2. Add Client Logo Upload - Makes for easier Visibility
+1. Add Client Logo Upload - Makes for easier Visibility ✅ 
 
 
 ## Contacts
 
-### Model and Form Definition
+### Model and Form Definition  ✅ 
 
 1. First Name
 
@@ -45,7 +43,7 @@
 4. Number of Linked Clients (A counter)
 
 
-## Workflow
+## Workflow  ✅ 
 
 **Optionally an authenticated User Signs into the System, and is able to add a single client at a time, and then is able to have a select2 to link more than one client to a contact during the form creation**
 
@@ -59,13 +57,15 @@
 3. #373737 - dark grey
 
 
-### Additional Updates
+### Additional Updates 
 
-1. Add ajax based search of the cards, 
+1. Add ajax based search of the cards,  ✅ 
 
-2. Add both a grid and a list viewing style
+2. Add both a grid and a list viewing style  ✅ 
 
-3. Add Editing and Soft Delete
+3. Add Editing and Soft Delete  ✅ 
+
+4. Add Error logging at function level and save to BASE_DIR/logs/
 
 
 
