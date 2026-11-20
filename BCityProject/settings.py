@@ -125,3 +125,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# ---------------- Auth redirects ----------------
+LOGIN_URL = "staff-login"            # where @login_required bounces anonymous users
+LOGIN_REDIRECT_URL = "client-list"   # where users land after successful login
+LOGOUT_REDIRECT_URL = "staff-login"  # where users land after logout
+
+

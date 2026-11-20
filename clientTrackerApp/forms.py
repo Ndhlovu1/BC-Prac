@@ -1,5 +1,6 @@
 from django import forms
 from .models import Client, Contact
+from django.contrib.auth.forms import AuthenticationForm
 
 
 class ClientForm(forms.ModelForm):
@@ -40,5 +41,46 @@ class ContactForm(forms.ModelForm):
         return obj
 
 
+class StaffLoginForm(AuthenticationForm):
+    """
+    Extends Django's AuthenticationForm to:
+      - Style the username/password widgets
+      - Accept email OR username as the identifier
+      - Reject non-staff users with a clear error
+    """
+    username = forms.CharField(
+        label="Username or Email",
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "you@example.com or username",
+            "autofocus": True,
+            "autocomplete": "username",
+        }),
+    )
+    password = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={
+            "class": "form-control",
+            "placeholder": "••••••••",
+            "autocomplete": "current-password",
+        }),
+    )
 
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        "not_staff": "This account does not have staff access.",
+    }
+
+    def clean(self):
+        # Run Django's normal auth first (handles inactive, bad password, etc.)
+        cleaned = super().clean()
+
+        user = getattr(self, "user_cache", None)
+        if user is not None and not user.is_staff:
+            raise forms.ValidationError(
+                self.error_messages["not_staff"],
+                code="not_staff",
+            )
+
+        return cleaned
     

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height:70vh;" >
+  <div class="col-md-7 col-lg-5 col-xl-4">
+
+    <div class="card shadow-8 border-0 rounded-3 overflow-hidden" >
+
+        <!-- Brand strip -->
+        <div class="text-center py-4" style="background:#b51c10;">
+            <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-3 p-2 shadow-sm mb-2"
+                style="width:120px; height:100px;">
+                <img src="{% static 'img/logo.png' %}"
+                    alt="Client Tracker"
+                    class="img-fluid"
+                    style="max-width:100%; max-height:100%; object-fit:contain;">
+            </div>
+
+            <p class="mb-0 small text-white-50">Staff &amp; Admin Portal</p>
+        </div>
+
+      <div class="card-body p-4 p-md-5">
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger shadow-1 d-flex gap-2 align-items-start">
+            <i class="fas fa-circle-exclamation mt-1"></i>
+            <div>
+              {% for err in form.non_field_errors %}
+                <div>{{ err }}</div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+
+          <!-- Username / Email -->
+          <div class="form-outline mb-4">
+            <input type="text"
+                   id="{{ form.username.id_for_label }}"
+                   name="{{ form.username.name }}"
+                   class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                   value="{{ form.username.value|default:'' }}"
+                   autocomplete="username"
+                   placeholder="username"
+                   required autofocus>
+            <label class="form-label" for="{{ form.username.id_for_label }}">
+              <i class="fas fa-user me-1 text-muted"></i>
+              Username or Email
+            </label>
+            {% if form.username.errors %}
+              <div class="invalid-feedback d-block">{{ form.username.errors|striptags }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Password -->
+          <div class="form-outline mb-2">
+            <input type="password"
+                   id="{{ form.password.id_for_label }}"
+                   name="{{ form.password.name }}"
+                   class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                   autocomplete="current-password"
+                   placeholder="••••••••"
+                   required>
+            <label class="form-label" for="{{ form.password.id_for_label }}">
+              <i class="fas fa-lock me-1 text-muted"></i>
+              Password
+            </label>
+            {% if form.password.errors %}
+              <div class="invalid-feedback d-block">{{ form.password.errors|striptags }}</div>
+            {% endif %}
+          </div>
+
+          
+
+          <button type="submit" class="btn btn-ct btn-rounded w-100 shadow-1 py-2">
+            <i class="fas fa-right-to-bracket me-2"></i> Sign In
+          </button>
+        </form>
+
+        <hr class="my-4">
+
+        <p class="text-center small text-muted mb-0">
+          <i class="fas fa-shield-halved me-1"></i>
+          Access is restricted to staff and administrators.
+        </p>
+      </div>
+    </div>
+
+    <p class="text-center small text-muted mt-3 mb-0">
+      &copy; {% now "Y" %} Client Tracker &mdash; All rights reserved.
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('.form-outline').forEach((el) => { new mdb.Input(el).init(); });
+</script>
+{% endblock %}

@@ -1,7 +1,18 @@
 from django.urls import path
 from . import views
+from .forms import *
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
+
+
+
+    path("login/",  auth_views.LoginView.as_view(
+        template_name="auth/login.html",
+        authentication_form=StaffLoginForm,redirect_authenticated_user=True,), name="staff-login"),
+
+    path("logout/", auth_views.LogoutView.as_view(next_page="staff-login"), name="staff-logout"),
+
     # Clients
     path("", views.client_list, name="client-list"),
     path("clients/new/", views.client_create, name="client-create"),
