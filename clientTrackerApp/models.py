@@ -129,11 +129,7 @@ class Contact(models.Model):
     email = models.EmailField(unique=True, validators=[EmailValidator()])
 
     # A contact can be linked to one or more clients (select2 during form)
-    clients = models.ManyToManyField(
-        Client,
-        related_name="contacts",
-        blank=True,
-    )
+    clients = models.ManyToManyField(Client,related_name="contacts",blank=True,)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
