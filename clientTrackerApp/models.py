@@ -104,11 +104,10 @@ class Client(models.Model):
 
 # Model for Contact associated with a Client
 class Contact(models.Model):
-    # One contact belongs to exactly ONE client (many contacts per client).
-    client = models.ForeignKey(Client, on_delete=models.CASCADE,related_name="contacts",)
+    client = models.ForeignKey(Client,on_delete=models.SET_NULL, null=True,blank=True, related_name="contacts",)
     first_name = models.CharField(max_length=100)
-    surname = models.CharField(max_length=100)
-    email = models.EmailField(unique=True, validators=[EmailValidator()])
+    surname    = models.CharField(max_length=100)
+    email      = models.EmailField(unique=True, validators=[EmailValidator()])
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -116,6 +115,10 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.surname}"
+
+    @property
+    def is_delinked(self) -> bool:
+        return self.client_id is None
     
 
 
