@@ -13,7 +13,7 @@
 
 4. If you run into issues at  the above stage delete the Pipfile.lock and re-run the command `pipenv install`
 
-5. Assuming all has gone well, run the command `python manage.py runserver` : This should show you the localhost:8000/ url which will take you to the web interface
+5. Assuming all has gone well, run the command `python manage.py runserver` : This should show you the localhost://8000 url which will take you to the web interface
 
 ## Generate a client tracking
 
