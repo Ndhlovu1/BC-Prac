@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Client Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow-1 border-0 rounded-3">
+      <div class="card-header card-header-clean">
+        <h4 class="mb-0 fw-bold">
+          <i class="fas fa-key text-ct me-2"></i> Client Login
+        </h4>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-outline mb-4">
+            <input type="text" id="code" name="code" class="form-control" required autofocus>
+            <label class="form-label" for="code">Client Code (e.g. ABC001)</label>
+          </div>
+          <button class="btn btn-ct btn-rounded w-100 shadow-1" type="submit">
+            <i class="fas fa-right-to-bracket me-1"></i> Sign In
+          </button>
+          <p class="text-muted small text-center mt-3 mb-0">
+            Enter the code provided to you by your account manager.
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('.form-outline').forEach((el) => {
+    new mdb.Input(el).init();
+  });
+</script>
+{% endblock %}

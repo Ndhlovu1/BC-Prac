@@ -1,0 +1,175 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% endblock %} | Client Tracker</title>
+
+
+    <link rel="icon" type="image/x-icon" href="{% static 'img/logoww.jpg' %}">
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+
+  <!-- MDBootstrap CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.1/mdb.min.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ct-red: #b51c10;
+      --ct-grey: #989898;
+      --ct-dark: #373737;
+      --ct-red-dark: #8e150c;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f5f6f8;
+      color: var(--ct-dark);
+    }
+
+    .navbar-brand { font-weight: 700; letter-spacing: .5px; }
+
+    .btn-ct {
+      background: var(--ct-red);
+      color: #fff;
+      border: none;
+    }
+    .btn-ct:hover,
+    .btn-ct:focus {
+      background: var(--ct-red-dark);
+      color: #fff;
+    }
+
+    .btn-outline-ct {
+      border: 1px solid var(--ct-red);
+      color: var(--ct-red);
+      background: transparent;
+    }
+    .btn-outline-ct:hover,
+    .btn-outline-ct:focus {
+      background: var(--ct-red);
+      color: #fff;
+    }
+
+    .text-ct { color: var(--ct-red) !important; }
+    .text-ct-grey { color: var(--ct-grey) !important; }
+    .text-ct-dark { color: var(--ct-dark) !important; }
+    .bg-ct { background: var(--ct-red) !important; }
+    .bg-ct-grey { background: var(--ct-grey) !important; }
+
+    .client-card {
+      transition: transform .15s ease, box-shadow .15s ease;
+      border: none;
+      border-radius: .75rem;
+    }
+    .client-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(0,0,0,.08);
+    }
+
+    .logo-thumb {
+      max-height: 56px;
+      max-width: 120px;
+      object-fit: contain;
+    }
+
+    .initials-box {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--ct-red);
+      color: #fff;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      letter-spacing: .5px;
+    }
+
+    .code-badge {
+      background: #ececec;
+      color: var(--ct-dark);
+      font-weight: 600;
+      padding: .35em .6em;
+      border-radius: .4rem;
+      font-size: .78rem;
+      letter-spacing: .5px;
+      border: 1px solid #dcdcdc;
+    }
+
+    .card-header-clean {
+      background: #fff;
+      border-bottom: 1px solid #eef0f3;
+      border-radius: .75rem .75rem 0 0 !important;
+    }
+
+    .empty-state {
+      background: #fff;
+      border-radius: .75rem;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      color: var(--ct-grey);
+    }
+    .empty-state i { font-size: 2.5rem; color: var(--ct-grey); margin-bottom: .75rem; }
+
+    .btn-rounded { border-radius: 50rem; }
+
+    .table-hover tbody tr:hover { background: #f8f9fb; }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: var(--ct-red);
+      box-shadow: 0 0 0 .2rem rgba(181,28,16,.15);
+    }
+
+    .form-outline .form-control:focus ~ .form-label,
+    .form-outline .form-control.active ~ .form-label {
+      color: var(--ct-red);
+    }
+
+    .page-link { color: var(--ct-red); }
+    .page-item.active .page-link {
+      background: var(--ct-red);
+      border-color: var(--ct-red);
+    }
+  </style>
+</head>
+
+<body style="min-height:100vh; display:flex; flex-direction:column;">
+
+  {% include "partials/navbar.html" %}
+
+  <!-- flex:1 pushes the footer to the bottom on short pages -->
+  <main class="container py-4" style="flex:1;">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-1" role="alert">
+          <i class="fas fa-circle-info me-2"></i>{{ message }}
+          <button type="button" class="btn-close" data-mdb-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "partials/footer.html" %}
+
+  <!-- MDBootstrap JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/6.4.1/mdb.min.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+
+
+</html>
+
+

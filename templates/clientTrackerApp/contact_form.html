@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}New Contact{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-1 border-0 rounded-3">
+      <div class="card-header card-header-clean">
+        <h4 class="mb-0 fw-bold">
+          <i class="fas fa-user-plus text-ct me-2"></i> New Contact
+          {% if client %}
+            <small class="text-muted fw-normal">for {{ client.name }}</small>
+          {% endif %}
+        </h4>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger shadow-1">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          {% if client %}
+            <div class="mb-4">
+              <label class="form-label fw-medium">Client</label>
+              <input type="text" class="form-control" value="{{ client.name }} ({{ client.code }})" disabled>
+            </div>
+          {% else %}
+            <div class="mb-4">
+              <label for="{{ form.client.id_for_label }}" class="form-label fw-medium">
+                Client <span class="text-danger">*</span>
+              </label>
+              <select id="{{ form.client.id_for_label }}"
+                      name="{{ form.client.name }}"
+                      class="form-select {% if form.client.errors %}is-invalid{% endif %}"
+                      required>
+                <option value="" disabled {% if not form.client.value %}selected{% endif %}>Select a client…</option>
+                {% for opt in form.client.field.queryset %}
+                  <option value="{{ opt.pk }}"
+                    {% if form.client.value|stringformat:"s" == opt.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ opt.name }} ({{ opt.code }})
+                  </option>
+                {% endfor %}
+              </select>
+              {% if form.client.errors %}
+                <div class="invalid-feedback d-block">{{ form.client.errors|striptags }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-outline mb-4">
+                <input type="text"
+                       id="{{ form.first_name.id_for_label }}"
+                       name="{{ form.first_name.name }}"
+                       class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                       value="{{ form.first_name.value|default:'' }}"
+                       required>
+                <label class="form-label" for="{{ form.first_name.id_for_label }}">
+                  First Name <span class="text-danger">*</span>
+                </label>
+                {% if form.first_name.errors %}
+                  <div class="invalid-feedback d-block">{{ form.first_name.errors|striptags }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-outline mb-4">
+                <input type="text"
+                       id="{{ form.surname.id_for_label }}"
+                       name="{{ form.surname.name }}"
+                       class="form-control {% if form.surname.errors %}is-invalid{% endif %}"
+                       value="{{ form.surname.value|default:'' }}"
+                       required>
+                <label class="form-label" for="{{ form.surname.id_for_label }}">
+                  Surname <span class="text-danger">*</span>
+                </label>
+                {% if form.surname.errors %}
+                  <div class="invalid-feedback d-block">{{ form.surname.errors|striptags }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-outline mb-4">
+            <input type="email"
+                   id="{{ form.email.id_for_label }}"
+                   name="{{ form.email.name }}"
+                   class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                   value="{{ form.email.value|default:'' }}"
+                   required>
+            <label class="form-label" for="{{ form.email.id_for_label }}">
+              Email <span class="text-danger">*</span>
+            </label>
+            {% if form.email.errors %}
+              <div class="invalid-feedback d-block">{{ form.email.errors|striptags }}</div>
+            {% endif %}
+            <div class="form-text">Must be unique across all contacts.</div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2">
+            {% if client %}
+              <a class="btn btn-outline-secondary btn-rounded" href="{% url 'client-detail' client.pk %}">Cancel</a>
+            {% else %}
+              <a class="btn btn-outline-secondary btn-rounded" href="{% url 'client-list' %}">Cancel</a>
+            {% endif %}
+            <button class="btn btn-ct btn-rounded shadow-1" type="submit">
+              <i class="fas fa-save me-1"></i> Save Contact
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('.form-outline').forEach((el) => {
+    new mdb.Input(el).init();
+  });
+</script>
+{% endblock %}
+
+
+
