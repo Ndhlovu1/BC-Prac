@@ -2,20 +2,86 @@
 {% block title %}Clients{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
   <div>
     <h3 class="mb-0 fw-bold">Clients</h3>
-    <p class="text-muted mb-0 small">Manage your client directory</p>
+    <p class="text-muted mb-0 small">
+      Manage your client directory
+      &mdash; {{ page_obj.paginator.count }} total
+    </p>
   </div>
   <a class="btn btn-ct btn-rounded shadow-1" href="{% url 'client-create' %}">
     <i class="fas fa-plus me-1"></i> New Client
   </a>
 </div>
 
-<div class="row g-4">
+<!-- ============ SEARCH + VIEW TOGGLE ============ -->
+<div class="card shadow-1 border-0 rounded-3 mb-4">
+  <div class="card-body d-flex flex-column flex-lg-row gap-3 align-items-lg-center justify-content-between">
+
+    <!-- Live search -->
+    <div class="position-relative flex-grow-1" style="max-width:640px;">
+      <input type="text"
+             id="searchInput"
+             class="form-control ps-5 pe-5"
+             placeholder="Search by name or code…"
+             onkeyup="filterCards()"
+             autocomplete="off"
+             style="border-radius:50rem; height:48px;">
+      <span class="position-absolute top-50 translate-middle-y text-muted"
+            style="left:1rem;">
+        <i class="fas fa-search"></i>
+      </span>
+      <button type="button"
+              id="clearSearchBtn"
+              onclick="clearSearch()"
+              class="btn btn-link position-absolute top-50 translate-middle-y text-muted d-none p-0"
+              style="right:1rem; text-decoration:none;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- View toggle -->
+    <div class="d-flex align-items-center gap-2 bg-light rounded-pill p-1">
+      <button id="gridViewBtn"
+              type="button"
+              onclick="setViewMode('grid')"
+              class="btn btn-sm btn-rounded"
+              title="Grid view"
+              style="background:#2c3649; color:#fff;">
+        <i class="fas fa-th-large me-1"></i> Grid
+      </button>
+      <button id="listViewBtn"
+              type="button"
+              onclick="setViewMode('list')"
+              class="btn btn-sm btn-rounded"
+              title="List view"
+              style="background:#b51c10; color:#fff;">
+        <i class="fas fa-list me-1"></i> List
+      </button>
+    </div>
+  </div>
+
+  <!-- Active search chip -->
+  <div id="activeFilters" class="px-3 pb-3 d-none">
+    <span class="text-muted small">Active filter:</span>
+    <span class="badge rounded-pill bg-light text-dark border ms-1">
+      <i class="fas fa-search me-1"></i><span id="activeSearchTerm"></span>
+      <button type="button" onclick="clearSearch()"
+              class="btn btn-link p-0 ms-1 text-decoration-none text-danger">
+        <i class="fas fa-times"></i>
+      </button>
+    </span>
+  </div>
+</div>
+
+<!-- ============ GRID VIEW ============ -->
+<div id="gridView" class="row g-4">
   {% for c in clients %}
-    <div class="col-md-6 col-lg-4">
-      <div class="card client-card h-100 shadow-1">
+    <div class="col-md-6 col-lg-4 client-card"
+         data-name="{{ c.name|lower }}"
+         data-code="{{ c.code|lower }}">
+      <div class="card h-100 shadow-1 border-0 rounded-3">
         <div class="card-body d-flex gap-3">
           <div class="flex-shrink-0">
             {% if c.logo %}
@@ -34,7 +100,8 @@
           </div>
           <div class="flex-grow-1 min-w-0">
             <h5 class="mb-1 fw-bold text-truncate">
-              <a href="{% url 'client-detail' c.pk %}" class="text-decoration-none text-ct-dark">{{ c.name }}</a>
+              <a href="{% url 'client-detail' c.pk %}"
+                 class="text-decoration-none text-dark">{{ c.name }}</a>
             </h5>
             <span class="code-badge">{{ c.code }}</span>
             {% if not c.logo %}
@@ -47,10 +114,14 @@
           </div>
         </div>
         <div class="card-footer bg-white border-top-0 d-flex justify-content-between pt-0">
-          <a class="btn btn-sm btn-outline-ct btn-rounded" href="{% url 'client-detail' c.pk %}">
+          <a class="btn btn-sm btn-outline-ct btn-rounded"
+             href="{% url 'client-detail' c.pk %}">
             <i class="fas fa-eye me-1"></i> View
           </a>
-          
+          <a class="btn btn-sm btn-outline-ct btn-rounded"
+             href="{% url 'client-edit' c.pk %}">
+            <i class="fas fa-pen me-1"></i> Edit
+          </a>
           <a class="btn btn-sm btn-outline-ct btn-rounded"
              href="{% url 'contact-create-for-client' c.pk %}">
             <i class="fas fa-user-plus me-1"></i> Contact
@@ -60,7 +131,7 @@
     </div>
   {% empty %}
     <div class="col-12">
-      <div class="empty-state">
+      <div class="empty-state shadow-1">
         <i class="fas fa-folder-open"></i>
         <h5 class="fw-bold">No client(s) found.</h5>
         <p class="mb-3">Get started by creating your first client.</p>
@@ -71,7 +142,299 @@
     </div>
   {% endfor %}
 </div>
+
+<!-- ============ LIST VIEW (hidden by default) ============ -->
+<div id="listView" class="d-none">
+  <div class="card shadow-1 border-0 rounded-3">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#f8f9fb;">
+          <tr class="text-muted small text-uppercase">
+            <th class="ps-4">Client</th>
+            <th>Code</th>
+            <th>Contacts</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clients %}
+            <tr class="client-card-row"
+                data-name="{{ c.name|lower }}"
+                data-code="{{ c.code|lower }}">
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-3">
+                  {% if c.logo %}
+                    <img src="{{ c.logo.url }}" alt="{{ c.name }}"
+                         style="height:36px;width:36px;object-fit:contain;border-radius:6px;">
+                  {% else %}
+                    <span class="initials-box" style="width:36px;height:36px;font-size:.85rem;">
+                      {% with words=c.name.split %}
+                        {% if words|length == 1 %}
+                          {{ words.0|slice:":1"|upper }}
+                        {% else %}
+                          {% for w in words|slice:":3" %}{{ w|slice:":1"|upper }}{% endfor %}
+                        {% endif %}
+                      {% endwith %}
+                    </span>
+                  {% endif %}
+                  <div>
+                    <a href="{% url 'client-detail' c.pk %}"
+                       class="text-decoration-none fw-semibold text-dark">{{ c.name }}</a>
+                    {% if not c.logo %}
+                      <div class="small text-muted">{{ c.initials_label }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td><span class="code-badge">{{ c.code }}</span></td>
+              <td>
+                <span class="badge rounded-pill bg-light text-dark border">
+                  <i class="fas fa-users text-ct me-1"></i>{{ c.contact_count }}
+                </span>
+              </td>
+              <td class="text-end pe-4">
+                <a class="btn btn-sm btn-outline-ct btn-rounded"
+                   href="{% url 'client-detail' c.pk %}" title="View">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a class="btn btn-sm btn-outline-ct btn-rounded"
+                   href="{% url 'client-edit' c.pk %}" title="Edit">
+                  <i class="fas fa-pen"></i>
+                </a>
+                <a class="btn btn-sm btn-outline-ct btn-rounded"
+                   href="{% url 'contact-create-for-client' c.pk %}" title="Add Contact">
+                  <i class="fas fa-user-plus"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-5">
+                <i class="fas fa-folder-open d-block mb-2"
+                   style="font-size:1.75rem;color:#989898;"></i>
+                No client(s) found.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAGINATION ============ -->
+{% if page_obj.has_other_pages %}
+<div id="pagination" class="card shadow-1 border-0 rounded-3 mt-4">
+  <div class="card-body d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+    <div class="text-muted small">
+      Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+      of {{ page_obj.paginator.count }} clients
+    </div>
+    <nav>
+      <ul class="pagination mb-0">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}"
+               aria-label="Previous">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+          </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if num == page_obj.number %}
+            <li class="page-item active">
+              <span class="page-link" style="background:#b51c10;border-color:#b51c10;">{{ num }}</span>
+            </li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}"
+               aria-label="Next">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>
+{% endif %}
+
+<!-- ============ STYLES ============ -->
+<style>
+  .logo-thumb {
+    max-height: 56px;
+    max-width: 120px;
+    object-fit: contain;
+  }
+  .initials-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #b51c10;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: .5px;
+    flex-shrink: 0;
+  }
+  .code-badge {
+    display: inline-block;
+    background: #ececec;
+    color: #373737;
+    font-weight: 600;
+    padding: .35em .6em;
+    border-radius: .4rem;
+    font-size: .78rem;
+    letter-spacing: .5px;
+    border: 1px solid #dcdcdc;
+  }
+  .client-card,
+  .client-card-row {
+    transition: opacity .2s ease;
+  }
+  .client-card.is-hidden,
+  .client-card-row.is-hidden {
+    display: none !important;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeIn .25s ease-out; }
+</style>
+
+<!-- ============ SCRIPTS ============ -->
+<script>
+  // ---------------- View mode ----------------
+  let currentViewMode = localStorage.getItem('clientViewMode') || 'grid';
+
+  function setViewMode(mode) {
+    currentViewMode = mode;
+    localStorage.setItem('clientViewMode', mode);
+
+    const gridView = document.getElementById('gridView');
+    const listView = document.getElementById('listView');
+    const gridBtn  = document.getElementById('gridViewBtn');
+    const listBtn  = document.getElementById('listViewBtn');
+
+    if (mode === 'grid') {
+      gridView.classList.remove('d-none');
+      listView.classList.add('d-none');
+      gridBtn.style.background = '#2c3649';
+      gridBtn.style.color = '#fff';
+      listBtn.style.background = '#b51c10';
+      listBtn.style.color = '#fff';
+    } else {
+      gridView.classList.add('d-none');
+      listView.classList.remove('d-none');
+      listBtn.style.background = '#b51c10';
+      listBtn.style.color = '#fff';
+      gridBtn.style.background = '#2c3649';
+      gridBtn.style.color = '#fff';
+    }
+
+    // Pagination only makes sense with list view; hide in grid
+    const pagination = document.getElementById('pagination');
+    if (pagination) {
+      pagination.style.display = mode === 'list' ? 'block' : 'none';
+    }
+  }
+
+  // ---------------- Live search ----------------
+  function filterCards() {
+    const input   = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
+    const active  = document.getElementById('activeFilters');
+    const activeTerm = document.getElementById('activeSearchTerm');
+
+    const term = input.value.trim().toLowerCase();
+
+    clearBtn.classList.toggle('d-none', term.length === 0);
+
+    const cards = document.querySelectorAll('.client-card, .client-card-row');
+    let visible = 0;
+
+    cards.forEach(card => {
+      const name = card.dataset.name || '';
+      const code = card.dataset.code || '';
+      const match = !term || name.includes(term) || code.includes(term);
+      card.classList.toggle('is-hidden', !match);
+      if (match) {
+        visible++;
+        card.classList.add('fade-in');
+      } else {
+        card.classList.remove('fade-in');
+      }
+    });
+
+    // Active chip
+    if (term) {
+      activeTerm.textContent = term;
+      active.classList.remove('d-none');
+    } else {
+      active.classList.add('d-none');
+    }
+
+    // Empty state (only when *all* cards on this page are hidden)
+    const gridContainer = document.getElementById('gridView');
+    const listContainer = document.getElementById('listView');
+    const gridEmpty = gridContainer.querySelector('.no-results');
+    const listEmpty = listContainer.querySelector('.no-results');
+
+    // Simple approach: show a "no matches" banner if visible == 0
+    let banner = document.getElementById('noMatchBanner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'noMatchBanner';
+      banner.className = 'alert alert-light border shadow-1 mt-3 d-none';
+      banner.innerHTML = '<i class="fas fa-search me-2 text-muted"></i>' +
+                         'No clients on this page match your search.';
+      gridContainer.parentElement.insertBefore(banner, gridContainer);
+    }
+    banner.classList.toggle('d-none', visible !== 0);
+  }
+
+  function clearSearch() {
+    const input = document.getElementById('searchInput');
+    input.value = '';
+    input.focus();
+    filterCards();
+  }
+
+  // ---------------- Init ----------------
+  document.addEventListener('DOMContentLoaded', function () {
+    setViewMode(currentViewMode);
+
+    // Keyboard shortcuts (Ctrl/+F focuses search, Esc clears)
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+      }
+      if (e.key === 'Escape') {
+        clearSearch();
+      }
+    });
+  });
+</script>
 {% endblock %}
-
-
 

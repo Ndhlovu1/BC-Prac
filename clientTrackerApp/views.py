@@ -2,17 +2,26 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
-
+from django.core.paginator import Paginator
 from .forms import ClientForm, ContactForm
 from .models import Client, Contact
 
 
 @login_required
 def client_list(request):
-    # Prefetch contacts to avoid N+1; annotate count for the badge
-    clients = Client.objects.annotate(contact_count=Count("contacts")).prefetch_related("contacts")
-    return render(request, "clientTrackerApp/client_list.html", {"clients": clients})
+    qs = (
+        Client.objects
+        .annotate(contact_count=Count("contacts"))
+        .order_by("name")
+    )
 
+    paginator = Paginator(qs, 2)               
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "clientTrackerApp/client_list.html", {
+        "clients": page_obj,                    
+        "page_obj": page_obj,                   
+    })
 
 @login_required
 def client_detail(request, pk):
