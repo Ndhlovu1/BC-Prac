@@ -1,0 +1,30 @@
+{% load static %}
+<footer class="mt-5" 
+    style="
+        background:#fff; 
+        
+        box-shadow:0 2px 6px rgba(255, 0, 0, 0.43);
+        margin: 20px;
+        border-radius: 10px;
+        ">
+
+    
+    
+  <div class="container py-4">
+    <div class="row align-items-center g-3">
+    <hr style="border-color:#555; opacity:.4;">
+      <div class="col-md-6 d-flex align-items-center gap-2">
+      
+        <img src="{% static 'img/logo.jpg' %}" alt="Client Tracker"
+             style="height:28px; width:28px; object-fit:cover; border-radius:4px; background:#fff;">
+        <span style="font-weight:600; ">Client Tracker</span>
+      </div>
+      <div class="col-md-6 text-md-end small">
+        &copy; {% now "Y" %} Client Tracker. All rights reserved.
+      </div>
+    </div>
+   
+  </div>
+</footer>
+
+

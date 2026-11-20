@@ -31,8 +31,6 @@
 
 2. Add Client Logo Upload - Makes for easier Visibility
 
-3. 
-
 
 ## Contacts
 
@@ -52,9 +50,13 @@
 **Optionally an authenticated User Signs into the System, and is able to add a single client at a time, and then is able to have a select2 to link more than one client to a contact during the form creation**
 
 
+## Binary City Colors
 
+1. #b51c10 - red (main/core color)
 
+2. #989898 - grey 
 
+3. #373737 - dark grey
 
 
 
