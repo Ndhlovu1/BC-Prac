@@ -23,18 +23,16 @@
     </div>
   </div>
   <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-outline-secondary btn-rounded" href="{% url 'client-list' %}">
+    <a class="btn btn-outline-dark btn-rounded" href="{% url 'client-list' %}">
       <i class="fas fa-arrow-left me-1"></i> Back
     </a>
     <a class="btn btn-outline-ct btn-rounded" href="{% url 'client-edit' client.pk %}">
       <i class="fas fa-pen me-1"></i> Edit
     </a>
-    <a class="btn btn-outline-warning btn-rounded" href="{% url 'client-delink' client.pk %}">
-      <i class="fas fa-link-slash me-1"></i> Delink
+    <a class="btn btn-outline-ct btn-rounded" href="{% url 'client-delink' client.pk %}">
+      <i class="fas fa-link-slash me-1"></i> Delete
     </a>
-    <a class="btn btn-outline-ct btn-rounded" href="{% url 'client-delete' client.pk %}">
-      <i class="fas fa-trash me-1"></i> Delete
-    </a>
+    
     <a class="btn btn-ct btn-rounded shadow-1"
       href="{% url 'contact-create-for-client' client.pk %}">
       <i class="fas fa-user-plus me-1"></i> Add Contact
@@ -85,7 +83,7 @@
               </a>
               <button type="button"
                       class="btn btn-sm btn-outline-danger btn-rounded js-delink-contact"
-                      title="Delink from this client"
+                      title="Detach from this client"
                       data-contact-id="{{ contact.pk }}"
                       data-contact-name="{{ contact.first_name }} {{ contact.surname }}">
                 <i class="fas fa-link-slash"></i>
