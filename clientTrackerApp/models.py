@@ -75,6 +75,8 @@ class Client(models.Model):
     code = models.CharField(max_length=6, unique=True, blank=True, editable=False)
     logo = models.ImageField(upload_to="client_logos/", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_delinked = models.BooleanField(default=False, db_index=True)
+    delinked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -82,7 +84,7 @@ class Client(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
-    #
+    
     @property
     def initials_label(self) -> str:
         """'Protea Hotel (PH)' or 'Hilton (H)' — used when no logo is uploaded."""
