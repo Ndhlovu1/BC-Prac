@@ -25,12 +25,17 @@ class ContactForm(forms.ModelForm):
         }
 
     def __init__(self, *args, client=None, **kwargs):
-        # `client` is consumed here; it never reaches BaseModelForm.__init__
         super().__init__(*args, **kwargs)
         self._fixed_client = client
+
         if client is not None:
             # Client is pre-bound from the URL — hide the dropdown
             self.fields.pop("client", None)
+        else:
+            # Standalone create form: model's blank=True makes the field
+            # optional. Force it required + drop the empty option.
+            self.fields["client"].required = True
+            self.fields["client"].empty_label = None
 
     def save(self, commit=True):
         obj = super().save(commit=False)
@@ -39,7 +44,6 @@ class ContactForm(forms.ModelForm):
         if commit:
             obj.save()
         return obj
-
 
 class StaffLoginForm(AuthenticationForm):
     """

@@ -67,6 +67,7 @@ def client_create(request):
         form = ClientForm()
     return render(request, "clientTrackerApp/client_form.html", {"form": form})
 
+
 @login_required
 @staff_required
 def contact_create(request, client_pk=None):
@@ -77,7 +78,14 @@ def contact_create(request, client_pk=None):
         if form.is_valid():
             contact = form.save()
             messages.success(request, "Contact added.")
-            return redirect("client-detail", pk=contact.client_id)
+
+            # Safe redirect — a contact could legitimately have no client
+            # (blank=True is required for the delink workflow), so never
+            # blindly use contact.client_id.
+            if contact.client_id:
+                return redirect("client-detail", pk=contact.client_id)
+            return redirect("delinked-contacts")
+
     else:
         form = ContactForm(client=client)
 
