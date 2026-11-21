@@ -44,7 +44,7 @@ def client_list(request):
     # AJAX requests receive rendered table HTML and the total result count.
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         html = render_to_string(
-            "clientTrackerApp/clients/partial/_client_results.html",
+            "clientTrackerApp/clients/_client_results.html",
             context, request=request,
         )
         return JsonResponse({"html": html, "count": page_obj.paginator.count})
