@@ -34,5 +34,9 @@
 - `tests.py` — Contains automated tests for application behavior and functionality.
 
 
+## Useful
+
+1. Use the command `python manage.py sqlmigrate clientTrackerApp 0001 > migration_0001.sql` to show the migration commands before finalizing them, works for singular migrations
+
 
 
