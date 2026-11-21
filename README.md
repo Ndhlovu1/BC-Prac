@@ -130,10 +130,10 @@ media/                   uploaded client logos (git-ignored)
 |---|---|
 | `/login/`, `/logout/` | Staff sign in / out |
 | `/` | Client list (search, grid/list, pagination) |
-| `/clients/new/`, `/clients/<id>/`, `/clients/<id>/edit/`, `/clients/<id>/delete/` | Client create, detail (with contacts), edit, delete |
+| `/clients/new/`, `/clients/<id>/`, `/clients/<id>/edit/` | Client create, detail (with contacts), edit |
 | `/clients/<id>/delink/`, `/clients/delinked/`, `/clients/<id>/relink/` | Client soft-delete and restore |
 | `/contacts/new/`, `/clients/<id>/contacts/new/` | Create a contact (standalone, or pre-linked to a client) |
-| `/contacts/<id>/edit/`, `/contacts/<id>/delete/` | Edit / delete a contact |
+| `/contacts/<id>/edit/`| Edit a contact |
 | `/contacts/<id>/delink/`, `/contacts/delinked/`, `/contacts/<id>/relink/` | Unlink (AJAX), list unlinked contacts, relink |
 | `/contacts/pdf/`, `/clients/<id>/contacts/pdf/` | PDF exports |
 
