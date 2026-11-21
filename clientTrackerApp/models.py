@@ -67,43 +67,55 @@ def generate_client_code(name: str) -> str:
 
 """
 
-# Model for Client Which can contain numerous contacts
+# Model for a client, which can contain numerous associated contacts.
+
 class Client(models.Model):
+    # Basic identity and branding details for the client.
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=6, unique=True, blank=True, editable=False)
     logo = models.ImageField(upload_to="client_logos/", blank=True, null=True)
+
+    # Audit and delinking fields track when the client was created or deactivated.
     created_at = models.DateTimeField(auto_now_add=True)
     is_delinked = models.BooleanField(default=False, db_index=True)
     delinked_at = models.DateTimeField(null=True, blank=True)
+
+    # Keep a historical record of changes made to this model.
     history = HistoricalRecords()  
 
     class Meta:
+        # Return clients alphabetically by name when no explicit ordering is given.
         ordering = ["name"]
 
     def __str__(self):
+        # Display the client name together with its unique code in admin and shell views.
         return f"{self.name} ({self.code})"
 
-    
     @property
     def initials_label(self) -> str:
         """'Protea Hotel (PH)' or 'Hilton (H)' — used when no logo is uploaded."""
+        # Split the name into words and derive initials for a fallback logo label.
         words = [w for w in self.name.split() if w]
         if not words:
             return f"{self.name} ()"
+
+        # Use the first letter for a single word, or the first letter of every word otherwise.
         short = words[0][0].upper() if len(words) == 1 else "".join(w[0].upper() for w in words)
         return f"{self.name} ({short})"
 
     @property
     def logo_display(self) -> str:
+        # Prefer the uploaded logo URL; otherwise, use the generated initials label.
         return self.logo.url if self.logo else self.initials_label
 
     def save(self, *args, **kwargs):
+        # Assign a unique business code only when the client is being created without one.
         if not self.code:
             self.code = generate_client_code(self.name)
         super().save(*args, **kwargs)
 
 
-# Model for Contact associated with a Client
+# Model for a contact associated with a client.
 class Contact(models.Model):
     client = models.ForeignKey(Client,on_delete=models.SET_NULL, null=True,blank=True, related_name="contacts",)
     first_name = models.CharField(max_length=100)

@@ -16,25 +16,32 @@ from django.db import transaction
 from .pdf import render_pdf
 from django.http import HttpResponse
 
+# Restrict selected views to authenticated users who are active staff members.
 staff_required = user_passes_test(
     lambda u: u.is_active and u.is_staff, login_url="staff-login")
 
 @login_required
 def client_list(request):
+    # Read and trim the optional search term from the query string.
     q = request.GET.get("q", "").strip()
 
+    # List only active clients and calculate how many contacts belong to each.
     qs = (
         Client.objects
         .filter(is_delinked=False)          # ← exclude archived
         .annotate(contact_count=Count("contacts"))
         .order_by("name")
     )
+
+    # Match the search term against either the client name or code.
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q))
 
+    # Split the filtered results into pages of ten clients.
     page_obj = Paginator(qs, 10).get_page(request.GET.get("page"))
     context = {"clients": page_obj, "page_obj": page_obj, "q": q}
 
+    # AJAX requests receive rendered table HTML and the total result count.
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         html = render_to_string(
             "clientTrackerApp/clients/partial/_client_results.html",
@@ -42,11 +49,14 @@ def client_list(request):
         )
         return JsonResponse({"html": html, "count": page_obj.paginator.count})
 
+    # Normal requests render the complete client list page.
     return render(request, "clientTrackerApp/client_list.html", context)
 
+# Require login and staff status before displaying a client's details.
 @login_required
 @staff_required
 def client_detail(request, pk):
+    # Return a 404 if no client exists for the supplied primary key.
     client = get_object_or_404(Client, pk=pk)
     return render(request, "clientTrackerApp/client_detail.html", {
         "client": client,
@@ -54,39 +64,45 @@ def client_detail(request, pk):
     })
 
 
+# Require login and staff status before allowing client creation.
 @login_required
 @staff_required
 def client_create(request):
     if request.method == "POST":
+        # Bind text and uploaded files to the form, then validate submitted data.
         form = ClientForm(request.POST, request.FILES)
         if form.is_valid():
             client = form.save()
             messages.success(request, f"Client '{client.name}' created with code {client.code}.")
             return redirect("client-list")
     else:
+        # An unbound form is shown for an initial GET request.
         form = ClientForm()
     return render(request, "clientTrackerApp/client_form.html", {"form": form})
 
 
+# Require login and staff status before allowing contact creation.
 @login_required
 @staff_required
 def contact_create(request, client_pk=None):
+    # Preselect a client when a client-specific URL is used.
     client = get_object_or_404(Client, pk=client_pk) if client_pk else None
 
     if request.method == "POST":
+        # Pass the client context into the form for validation and saving.
         form = ContactForm(request.POST, client=client)
         if form.is_valid():
             contact = form.save()
             messages.success(request, "Contact added.")
 
-            # Safe redirect — a contact could legitimately have no client
-            # (blank=True is required for the delink workflow), so never
-            # blindly use contact.client_id.
+            # A contact may remain unassociated during the delink workflow,
+            # so use the saved contact's client relation before redirecting.
             if contact.client_id:
                 return redirect("client-detail", pk=contact.client_id)
             return redirect("delinked-contacts")
 
     else:
+        # Render an empty contact form with the optional client context.
         form = ContactForm(client=client)
 
     return render(
@@ -96,18 +112,22 @@ def contact_create(request, client_pk=None):
     )
 
 
+# Require login and staff status before allowing contact updates.
 @login_required
 @staff_required
 def contact_edit(request, pk):
+    # Fetch the contact together with its client to avoid extra database lookups.
     contact = get_object_or_404(Contact.objects.select_related("client"), pk=pk)
 
     if request.method == "POST":
+        # Bind the submitted values to this contact and save valid changes.
         form = ContactForm(request.POST, instance=contact)
         if form.is_valid():
             form.save()
             messages.success(request, "Contact updated.")
             return redirect("client-detail", pk=contact.client_id)
     else:
+        # Prepopulate the form with the contact's existing values.
         form = ContactForm(instance=contact)
 
     return render(
@@ -117,17 +137,21 @@ def contact_edit(request, pk):
     )
 
 
+# Require login and staff status before allowing contact deletion.
 @login_required
 @staff_required
 def contact_delete(request, pk):
+    # Fetch the contact with its client before it may be removed.
     contact = get_object_or_404(Contact.objects.select_related("client"), pk=pk)
 
     if request.method == "POST":
+        # Preserve the client key so the user can return to that detail page.
         client_pk = contact.client_id
         contact.delete()
         messages.success(request, "Contact deleted.")
         return redirect("client-detail", pk=client_pk)
 
+    # Show a confirmation page for a GET request instead of deleting immediately.
     return render(
         request,
         "clientTrackerApp/contacts/contact_confirm_delete.html",
@@ -145,17 +169,22 @@ Client Edits & Deletion
 @login_required
 @staff_required
 def client_edit(request, pk):
+    # Retrieve the requested client or return a 404 if it does not exist.
     client = get_object_or_404(Client, pk=pk)
 
     if request.method == "POST":
+        # Bind submitted text and file data to the existing client instance.
         form = ClientForm(request.POST, request.FILES, instance=client)
         if form.is_valid():
+            # Save the changes and notify the user of the successful update.
             form.save()
             messages.success(request, f"Client '{client.name}' updated.")
             return redirect("client-detail", pk=client.pk)
     else:
+        # Pre-populate the form with the client's current values for editing.
         form = ClientForm(instance=client)
 
+    # Render the shared client form template for creating or editing a client.
     return render(request, "clientTrackerApp/client_form.html", {
         "form": form,
         "client": client,   
@@ -165,14 +194,17 @@ def client_edit(request, pk):
 @login_required
 @staff_required
 def client_delete(request, pk):
+    # Retrieve the client that will be deleted or return a 404.
     client = get_object_or_404(Client, pk=pk)
 
     if request.method == "POST":
+        # Keep the name for the success message because the record is removed below.
         name = client.name
         client.delete()
         messages.success(request, f"Client '{name}' deleted.")
         return redirect("client-list")
 
+    # GET requests display a confirmation page before any deletion occurs.
     return render(request, "clientTrackerApp/client_confirm_delete.html", {
         "client": client,
     })
@@ -230,15 +262,19 @@ def staff_logout(request):
  AJAX DELINK — set contact.client = None (does NOT delete)
 #######################################################
 """
+
 @login_required
 @staff_required
 @require_POST
 def contact_delink(request, pk):
+    # Delinking is an AJAX-only operation, so reject regular requests.
     if request.headers.get("x-requested-with") != "XMLHttpRequest":
         return JsonResponse({"ok": False, "error": "AJAX only"}, status=400)
 
+    # Fetch the contact with its current client relationship in one query.
     contact = get_object_or_404(Contact.objects.select_related("client"), pk=pk)
 
+    # If a client ID was supplied, verify that it owns this contact.
     client_id = request.POST.get("client_id")
     if client_id and str(contact.client_id) != str(client_id):
         return JsonResponse(
@@ -246,13 +282,16 @@ def contact_delink(request, pk):
             status=400,
         )
 
+    # No relationship means the contact has already been delinked.
     if contact.client_id is None:
         return JsonResponse({"ok": False, "error": "Contact is already delinked."}, status=400)
 
+    # Save only the foreign key change, leaving all other contact fields intact.
     name = f"{contact.first_name} {contact.surname}"
     contact.client = None
     contact.save(update_fields=["client"])
 
+    # Return details so the calling page can remove or update the contact UI.
     return JsonResponse({
         "ok": True,
         "message": f'"{name}" has been delinked.',
@@ -271,9 +310,11 @@ def contact_delink(request, pk):
 @login_required
 @staff_required
 def delinked_contacts(request):
+    # Trim the search term and start with contacts that have no client.
     q = request.GET.get("q", "").strip()
     qs = Contact.objects.filter(client__isnull=True).order_by("surname", "first_name")
 
+    # Search across the common identity and contact fields when provided.
     if q:
         qs = qs.filter(
             Q(first_name__icontains=q) |
@@ -281,6 +322,7 @@ def delinked_contacts(request):
             Q(email__icontains=q)
         )
 
+    # Render the delinked list while preserving the search term in the template.
     return render(request, "clientTrackerApp/contacts/delinked_list.html", {
         "contacts": qs,
         "q": q,

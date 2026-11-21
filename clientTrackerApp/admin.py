@@ -136,7 +136,7 @@ class HistoricalClientAdmin(HistoryReadOnlyAdmin):
 
 
 # ------------------------------------------------------------------
-# HISTORICAL CONTACT — same treatment
+# HISTORICAL CONTACT —
 # ------------------------------------------------------------------
 @admin.register(HistoricalContact)
 class HistoricalContactAdmin(HistoryReadOnlyAdmin):
