@@ -763,3 +763,124 @@ class DelinkRoundTripTests(TestCase):
         types = list(self.contact.history.values_list("history_type", flat=True))
         self.assertEqual(types.count("+"), 1)
         self.assertEqual(types.count("~"), 2)
+
+
+
+
+
+
+
+
+class ClientSearchTests(TestCase):
+    """
+    Tests client search functionality, including normal page requests
+    and AJAX requests.
+
+    Ensures that:
+    - The client list loads successfully.
+    - Searching returns matching clients.
+    - Searching is case-insensitive.
+    - Searching for nonexistent clients returns no results.
+    - AJAX requests render the correct partial template.
+    """
+
+    def setUp(self):
+        self.staff = make_user("jdoe", is_staff=True)
+        self.client.force_login(self.staff)
+
+        self.client1 = Client.objects.create(
+            name="Protea Hotel"
+        )
+
+        self.client2 = Client.objects.create(
+            name="Hilton Garden Inn"
+        )
+
+        self.client3 = Client.objects.create(
+            name="Radisson Blu"
+        )
+
+        self.url = reverse("client-list")
+
+    def test_client_list_loads_successfully(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Protea Hotel")
+        self.assertContains(response, "Hilton Garden Inn")
+
+    def test_search_returns_matching_client(self):
+        response = self.client.get(
+            self.url,
+            {"q": "Protea"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Protea Hotel")
+        self.assertNotContains(response, "Radisson Blu")
+
+    def test_search_is_case_insensitive(self):
+        response = self.client.get(
+            self.url,
+            {"q": "protea"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Protea Hotel")
+
+    def test_search_with_no_results(self):
+        response = self.client.get(
+            self.url,
+            {"q": "NonexistentCompany"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Protea Hotel")
+        self.assertNotContains(response, "Hilton Garden Inn")
+
+    def test_ajax_search_returns_json(self):
+        response = self.client.get(
+            self.url,
+            {"q": "Protea"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/json"
+        )
+
+        data = response.json()
+
+        self.assertIn("html", data)
+        self.assertIn("Protea Hotel", data["html"])
+        self.assertNotIn("Radisson Blu", data["html"])
+
+    def test_ajax_search_with_no_results(self):
+        response = self.client.get(
+            self.url,
+            {"q": "NonexistentCompany"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+
+        self.assertIn("html", data)
+        self.assertNotIn("Protea Hotel", data["html"])
+
+    def test_ajax_search_partial_template_renders(self):
+        response = self.client.get(
+            self.url,
+            {"q": "Hilton"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+
+        self.assertIn("html", data)
+        self.assertIn("Hilton Garden Inn", data["html"])
