@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ client.name }} — Contacts</title>
+  <style>
+    @page { size: A4 portrait; margin: 16mm 14mm 18mm 14mm; }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 10pt;
+      color: #373737;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* --- Header --- */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #b51c10;
+      margin-bottom: 14px;
+    }
+    .logo {
+      width: 56px; height: 56px;
+      border-radius: 8px;
+      background: #f8f9fb;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .initials {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #b51c10; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14pt; letter-spacing: 1px;
+    }
+    .client-name {
+      font-size: 18pt; font-weight: 700; color: #373737;
+      margin: 0 0 4px 0;
+    }
+    .code {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #ececec; color: #373737;
+      border-radius: 4px;
+      font-size: 8.5pt; font-weight: 600; letter-spacing: .5px;
+    }
+    .meta { margin-left: auto; text-align: right; font-size: 8.5pt; color: #6c757d; }
+    .meta strong { color: #373737; }
+
+    /* --- Summary --- */
+    .summary {
+      padding: 8px 12px;
+      background: #f8f9fb;
+      border-left: 3px solid #b51c10;
+      border-radius: 3px;
+      margin-bottom: 14px;
+      font-size: 9pt;
+    }
+    .summary strong { color: #373737; }
+
+    /* --- Table --- */
+    table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+    thead { display: table-header-group; }
+    th {
+      background: #373737; color: #fff;
+      padding: 6px 8px; text-align: left;
+      font-size: 8pt; text-transform: uppercase; letter-spacing: .4px;
+    }
+    td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #ececec;
+      vertical-align: top;
+    }
+    tbody tr:nth-child(even) td { background: #fafbfc; }
+    tbody tr { page-break-inside: avoid; }
+    .num { text-align: right; color: #989898; width: 26px; font-size: 8.5pt; }
+    .muted { color: #989898; }
+  </style>
+</head>
+<body>
+
+  <!-- ============ HEADER ============ -->
+  <div class="header">
+    {% if client.logo %}
+      <div class="logo"><img src="{{ client.logo.url }}" alt=""></div>
+    {% else %}
+      <div class="initials">
+        {% with words=client.name.split %}
+          {% if words|length == 1 %}{{ words.0|slice:":1"|upper }}
+          {% else %}{% for w in words|slice:":3" %}{{ w|slice:":1"|upper }}{% endfor %}{% endif %}
+        {% endwith %}
+      </div>
+    {% endif %}
+    <div>
+      <div class="client-name">{{ client.name }}</div>
+      <span class="code">{{ client.code }}</span>
+    </div>
+    <div class="meta">
+      Generated <strong>{{ generated_at|date:"Y-m-d H:i" }}</strong>
+      {% if client.is_delinked %}<br><span style="color:#b56a00;font-weight:600;">Delinked client</span>{% endif %}
+    </div>
+  </div>
+
+  <!-- ============ SUMMARY ============ -->
+  <div class="summary">
+    <strong>{{ total }}</strong> contact{{ total|pluralize }} on file
+    {% if client.is_delinked %}
+      &nbsp;·&nbsp; <span class="muted">This client was delinked on {{ client.delinked_at|date:"Y-m-d" }}</span>
+    {% endif %}
+  </div>
+
+  <!-- ============ TABLE ============ -->
+  <table>
+    <thead>
+      <tr>
+        <th class="num">#</th>
+        <th style="width:28%;">First Name</th>
+        <th style="width:28%;">Surname</th>
+        <th style="width:32%;">Email</th>
+        <th style="width:12%;">Added</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for contact in contacts %}
+        <tr>
+          <td class="num">{{ forloop.counter }}</td>
+          <td>{{ contact.first_name }}</td>
+          <td>{{ contact.surname }}</td>
+          <td>{{ contact.email }}</td>
+          <td class="muted">{{ contact.created_at|date:"Y-m-d" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center;padding:24px;color:#989898;">
+            No contacts for this client yet.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>
+

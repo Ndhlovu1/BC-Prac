@@ -12,9 +12,14 @@
       Re-link them or leave them in the pool.
     </p>
   </div>
+
   <a class="btn btn-outline-secondary btn-rounded" href="{% url 'client-list' %}">
     <i class="fas fa-arrow-left me-1"></i> All Clients
   </a>
+  <a class="btn btn-outline-ct btn-rounded" href="{% url 'contacts-pdf' %}{% if q %}?q={{ q|urlencode }}{% endif %}">
+    <i class="fas fa-file-pdf me-1"></i> Download PDF
+  </a>
+  
 </div>
 
 <div class="card shadow-1 border-0 rounded-3">

@@ -15,11 +15,5 @@
 
 5. Assuming all has gone well, run the command `python manage.py runserver` : This should show you the localhost://8000 url which will take you to the web interface
 
-## Generate a client tracking
 
-### Features
-
-
-
-## Generate a Contacts 
 

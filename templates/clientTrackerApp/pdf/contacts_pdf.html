@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Contact List</title>
+  <style>
+    /* ============ PDF-safe styles (no Bootstrap/MDB needed) ============ */
+    @page { size: A4 landscape; margin: 14mm 12mm 16mm 12mm; }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 9.5pt;
+      color: #373737;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* --- Header --- */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 3px solid #b51c10;
+      margin-bottom: 14px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand .dot {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #b51c10; color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 11pt;
+    }
+    .brand .title {
+      font-size: 15pt; font-weight: 700; color: #373737;
+    }
+    .meta { text-align: right; font-size: 8.5pt; color: #6c757d; }
+    .meta strong { color: #373737; }
+
+    /* --- Summary stats --- */
+    .stats {
+      display: flex; gap: 8px; margin-bottom: 12px;
+    }
+    .stat {
+      flex: 1;
+      padding: 8px 10px;
+      background: #f8f9fb;
+      border-left: 3px solid #b51c10;
+      border-radius: 3px;
+    }
+    .stat .label {
+      font-size: 7.5pt; color: #989898;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .stat .value {
+      font-size: 14pt; font-weight: 700; color: #373737;
+    }
+
+    /* --- Search filter chip --- */
+    .filter-chip {
+      display: inline-block;
+      padding: 3px 8px;
+      background: #fce8e6;
+      color: #b51c10;
+      border-radius: 999px;
+      font-size: 8pt;
+      margin-bottom: 10px;
+    }
+
+    /* --- Table --- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+    thead { display: table-header-group; }  /* repeat header on every page */
+    th {
+      background: #373737;
+      color: #fff;
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      border: none;
+    }
+    td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #ececec;
+      vertical-align: top;
+    }
+    tbody tr:nth-child(even) td { background: #fafbfc; }
+    tbody tr { page-break-inside: avoid; }
+
+    /* --- Cell-specific helpers --- */
+    .num {
+      text-align: right;
+      color: #989898;
+      width: 26px;
+      font-size: 8.5pt;
+    }
+    .code {
+      display: inline-block;
+      padding: 1px 6px;
+      background: #ececec;
+      color: #373737;
+      border-radius: 3px;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .client-name { font-weight: 600; }
+    .muted { color: #989898; }
+    .delinked {
+      display: inline-block;
+      padding: 1px 6px;
+      background: #fff4e5;
+      color: #b56a00;
+      border-radius: 3px;
+      font-size: 7.5pt;
+      font-weight: 600;
+    }
+
+    /* --- Footer --- */
+    .footer {
+      position: running(footer);
+      font-size: 8pt;
+      color: #989898;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ HEADER ============ -->
+  <div class="header">
+    <div class="brand">
+      <span class="dot">CT</span>
+      <span class="title">Contact List</span>
+    </div>
+    <div class="meta">
+      Generated <strong>{{ generated_at|date:"Y-m-d H:i" }}</strong>
+      {% if q %}<br>Filter: “{{ q }}”{% endif %}
+    </div>
+  </div>
+
+  {% if q %}
+    <div class="filter-chip">🔍 Showing results for “{{ q }}”</div>
+  {% endif %}
+
+  <!-- ============ SUMMARY STATS ============ -->
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Total contacts</div>
+      <div class="value">{{ total }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Linked</div>
+      <div class="value">{{ linked }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Delinked</div>
+      <div class="value">{{ delinked }}</div>
+    </div>
+  </div>
+
+  <!-- ============ TABLE ============ -->
+  <table>
+    <thead>
+      <tr>
+        <th class="num">#</th>
+        <th style="width:22%;">Name</th>
+        <th style="width:24%;">Email</th>
+        <th style="width:26%;">Client</th>
+        <th style="width:10%;">Code</th>
+        <th style="width:12%;">Added</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for contact in contacts %}
+        <tr>
+          <td class="num">{{ forloop.counter }}</td>
+          <td>
+            {{ contact.first_name }} {{ contact.surname }}
+            {% if not contact.client %}<span class="delinked">DELINKED</span>{% endif %}
+          </td>
+          <td>{{ contact.email }}</td>
+          <td>
+            {% if contact.client %}
+              <span class="client-name">{{ contact.client.name }}</span>
+            {% else %}
+              <span class="muted">— unassigned —</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if contact.client %}
+              <span class="code">{{ contact.client.code }}</span>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td class="muted">{{ contact.created_at|date:"Y-m-d" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:24px;color:#989898;">
+            No contacts match this filter.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>
+
+
+
+

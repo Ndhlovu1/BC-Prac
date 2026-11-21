@@ -13,7 +13,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.db import transaction
-
+from .pdf import render_pdf
+from django.http import HttpResponse
 
 staff_required = user_passes_test(
     lambda u: u.is_active and u.is_staff, login_url="staff-login")
@@ -415,5 +416,84 @@ def client_relink(request, pk):
 
 
 
+# ------------------------------------------------------------------
+# Downloading Contacts as PDF
+# ------------------------------------------------------------------
 
+@login_required
+@staff_required
+def contacts_pdf(request):
+    """
+    Download the full contact list as a PDF.
+    Honors the same ?q= filter as the HTML pages.
+    """
+    q = request.GET.get("q", "").strip()
+
+    qs = (
+        Contact.objects
+        .select_related("client")
+        .order_by("client__name", "surname", "first_name")
+    )
+    if q:
+        qs = qs.filter(
+            Q(first_name__icontains=q) |
+            Q(surname__icontains=q) |
+            Q(email__icontains=q) |
+            Q(client__name__icontains=q) |
+            Q(client__code__icontains=q)
+        )
+
+    contacts = list(qs)
+
+    pdf_bytes = render_pdf(
+        "clientTrackerApp/pdf/contacts_pdf.html",
+        {
+            "contacts": contacts,
+            "q": q,
+            "generated_at": timezone.now(),
+            "total": len(contacts),
+            "linked":     sum(1 for c in contacts if c.client_id is not None),
+            "delinked":   sum(1 for c in contacts if c.client_id is None),
+        },
+        request=request,
+    )
+
+    filename = "contacts"
+    if q:
+        # Sanitize the search term for the filename
+        safe = "".join(ch for ch in q if ch.isalnum() or ch in "-_")[:24]
+        if safe:
+            filename = f"contacts-{safe}"
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="{filename}-{timezone.now():%Y%m%d}.pdf"'
+    )
+    return response
+
+
+@login_required
+@staff_required
+def client_contacts_pdf(request, pk):
+    """Download one client's contact list as a PDF."""
+    client = get_object_or_404(Client, pk=pk)
+    contacts = client.contacts.all().order_by("surname", "first_name")
+
+    pdf_bytes = render_pdf(
+        "clientTrackerApp/pdf/client_contacts_pdf.html",
+        {
+            "client": client,
+            "contacts": contacts,
+            "generated_at": timezone.now(),
+            "total": contacts.count(),
+        },
+        request=request,
+    )
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="{client.code}-contacts-'
+        f'{timezone.now():%Y%m%d}.pdf"'
+    )
+    return response
 

@@ -35,5 +35,9 @@ urlpatterns = [
     path("clients/<int:pk>/delink/", views.client_delink,   name="client-delink"),
     path("clients/delinked/",       views.delinked_clients, name="delinked-clients"),
     path("clients/<int:pk>/relink/", views.client_relink,   name="client-relink"),
+
+    # Downloading PDF of Contacts
+    path("contacts/pdf/", views.contacts_pdf, name="contacts-pdf"),
+    path("clients/<int:pk>/contacts/pdf/", views.client_contacts_pdf, name="client-contacts-pdf"),
     
 ]
